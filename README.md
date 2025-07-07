@@ -50,6 +50,49 @@ VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
 VITE_API_URL=your_api_endpoint
 ```
 
+## Admin Login and Content Management
+
+### Accessing Admin Panel
+
+1. Go to your website's admin login page (usually at `/admin-login`)
+2. Use these credentials to log in:
+   - Username: `admin`
+   - Password: `28degreeswest2025`
+
+### Customizing Content
+
+Once logged in, you can:
+
+1. Add New Tours:
+   - Click "Create New Tour" in the admin dashboard
+   - Fill in tour details including:
+     - Title
+     - Description
+     - Duration
+     - Price
+     - Features
+     - Images
+   - Click "Create Tour" to save
+
+2. Manage Existing Tours:
+   - View all tours in the dashboard
+   - Edit tour details
+   - Add/remove features
+   - Update pricing
+   - Upload new images
+
+3. Configure Payment System:
+   - Go to Settings > Payment Configuration
+   - Enter your Stripe API keys
+   - Set up payment currencies
+   - Configure price tiers
+
+### Security Note
+- Keep your admin credentials secure
+- Change the default password immediately after first login
+- Never share your admin credentials
+- Regularly backup your content
+
 ## Development
 
 To run the development server:
@@ -57,14 +100,6 @@ To run the development server:
 ```bash
 npm install
 npm run dev
-```
-
-## Production Build
-
-To create a production build:
-
-```bash
-npm run build
 ```
 
 ## Technologies Used
