@@ -1,5 +1,6 @@
 import React from 'react';
-import { Container, Grid, Paper, Typography, Box, Button } from '@mui/material';
+import { Container, Paper, Typography, Box, Button } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
@@ -9,7 +10,7 @@ const Home: React.FC = () => {
     {
       id: 1,
       title: 'South Coast Adventure',
-      description: 'Explore the stunning beaches and hidden gems of Jamaica's south coast',
+      description: "Explore the stunning beaches and hidden gems of Jamaica's south coast",
       image: '/assets/images/south-coast-adventure.jpg',
     },
     {
