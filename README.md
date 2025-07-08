@@ -49,10 +49,11 @@ VITE_API_URL=your_api_endpoint
 - Never share your admin credentials and back up your content regularly.
 
 ## Development
-To run the development server:
+Useful npm scripts are provided:
 ```bash
-npm install
-npm run dev
+npm run start-dev       # install dependencies and start the dev server
+npm run check-backend   # verify the local API is reachable
+npm run deploy          # build and publish to GitHub Pages
 ```
 
 ## Technologies Used
