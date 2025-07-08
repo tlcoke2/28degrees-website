@@ -1,5 +1,5 @@
-const { execSync, spawn } = require('child_process');
-const open = require('open');
+import { execSync, spawn } from 'child_process';
+import open from 'open';
 
 function run(cmd, opts = {}) {
   execSync(cmd, { stdio: 'inherit', ...opts });

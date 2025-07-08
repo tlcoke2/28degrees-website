@@ -49,11 +49,11 @@ VITE_API_URL=your_api_endpoint
 - Never share your admin credentials and back up your content regularly.
 
 ## Development
-Useful npm scripts are provided:
+Useful npm scripts are provided. `npm run start-dev` installs dependencies, launches the dev server and opens the site automatically. `npm run check-backend` verifies that your API responds, while `npm run deploy` builds the app and publishes the `dist` folder to GitHub Pages.
 ```bash
-npm run start-dev       # install dependencies and start the dev server
-npm run check-backend   # verify the local API is reachable
-npm run deploy          # build and publish to GitHub Pages
+npm run start-dev
+npm run check-backend
+npm run deploy
 ```
 
 ## Technologies Used

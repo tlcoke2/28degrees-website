@@ -10,6 +10,6 @@ try {
     process.exitCode = 1;
   }
 } catch (err) {
-  console.error('Error reaching backend:', err.message);
+  console.error('Error reaching backend:', err?.message || err);
   process.exitCode = 1;
 }
