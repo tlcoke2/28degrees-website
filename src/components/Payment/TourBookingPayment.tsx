@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { CardElement, useElements } from '@stripe/react-stripe-js';
 import { Box, Button, Typography, Paper, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { stripePromise } from '../../config/stripe';
@@ -27,6 +27,7 @@ const TourBookingPayment: React.FC<TourBookingPaymentProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const elements = useElements();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
