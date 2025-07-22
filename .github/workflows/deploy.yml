@@ -25,7 +25,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          npm run build
+          # Copy the test index.html to the dist directory
+          cp ./public/index.html ./dist/
 
       - name: Create .nojekyll
         run: touch ./dist/.nojekyll
