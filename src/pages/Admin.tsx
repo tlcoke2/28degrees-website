@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, Box, Button, TextField, Select, MenuItem, FormControl, InputLabel, Alert } from '@mui/material';
+import { Container, Typography, Box, Button, TextField, Select, MenuItem, FormControl, InputLabel, Alert, SelectChangeEvent, Paper } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 interface TourFormData {
@@ -24,7 +24,7 @@ const Admin: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>) => {
     const { name, value } = event.target;
     setFormData(prev => ({
       ...prev,
@@ -32,7 +32,7 @@ const Admin: React.FC = () => {
     }));
   };
 
-  const handleFeatureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFeatureChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { value } = event.target;
     if (value) {
       setFormData(prev => ({
@@ -49,7 +49,7 @@ const Admin: React.FC = () => {
     }));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
       // TODO: Implement actual form submission logic (e.g., API call)
@@ -71,24 +71,24 @@ const Admin: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Container maxWidth="lg" sx={{ mt: 8, mb: 4 }}>
-        <Typography variant="h3" component="h2" gutterBottom align="center">
-          Admin Dashboard
-        </Typography>
-        
-        {successMessage && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {successMessage}
-          </Alert>
-        )}
-        
-        {errorMessage && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {errorMessage}
-          </Alert>
-        )}
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+        <Paper elevation={3} sx={{ p: 4 }}>
+          <Typography variant="h3" component="h2" gutterBottom align="center">
+            Admin Dashboard
+          </Typography>
+          
+          {successMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
+          
+          {errorMessage && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorMessage}
+            </Alert>
+          )}
 
-        <Paper sx={{ p: 4, mb: 4 }}>
           <Typography variant="h5" component="h3" gutterBottom>
             Create New Tour
           </Typography>
@@ -180,20 +180,20 @@ const Admin: React.FC = () => {
                 type="submit"
                 sx={{ mt: 2 }}
               >
-                Create Tour
+                Add Tour
+              </Button>
+              
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => navigate('/')}
+                sx={{ mt: 2, ml: 2 }}
+              >
+                Back to Home
               </Button>
             </Box>
           </form>
         </Paper>
-
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={() => navigate('/')} 
-          sx={{ mt: 2 }}
-        >
-          Back to Home
-        </Button>
       </Container>
     </Box>
   );

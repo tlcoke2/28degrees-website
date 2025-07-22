@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { Container, Paper, Typography, Box, TextField, Button, Alert } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+// Add Vite env types
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      VITE_ADMIN_USERNAME?: string;
+      VITE_ADMIN_PASSWORD?: string;
+    };
+  }
+}
+
 const AdminLogin: React.FC = () => {
-  const navigate = useNavigate();
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -14,9 +22,11 @@ const AdminLogin: React.FC = () => {
     event.preventDefault();
     try {
       // TODO: Replace with actual API call
-      if (username === process.env.REACT_APP_ADMIN_USERNAME && 
-          password === process.env.REACT_APP_ADMIN_PASSWORD) {
+      if (username === import.meta.env.VITE_ADMIN_USERNAME && 
+          password === import.meta.env.VITE_ADMIN_PASSWORD) {
         login('admin_token');
+        // Redirect to admin dashboard after successful login
+        window.location.href = '/admin';
       } else {
         setError('Invalid username or password');
       }

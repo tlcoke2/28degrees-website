@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, Box, TextField, Button, Alert, Grid, Card, CardContent } from '@mui/material';
+import { Container, Typography, Box, TextField, Button, Alert, Card, CardContent } from '@mui/material';
 import { Email as EmailIcon, Phone as PhoneIcon, LocationOn as LocationIcon } from '@mui/icons-material';
 
 interface ContactFormData {
@@ -48,125 +48,107 @@ const Contact: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Container maxWidth="lg" sx={{ mt: 8, mb: 4 }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="h3" component="h2" gutterBottom>
-              Contact Us
-            </Typography>
-            
-            {successMessage && (
-              <Alert severity="success" sx={{ mb: 2 }}>
-                {successMessage}
-              </Alert>
-            )}
-            
-            {errorMessage && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {errorMessage}
-              </Alert>
-            )}
+        <Typography variant="h3" component="h2" gutterBottom align="center">
+          Contact Us
+        </Typography>
+        <Typography variant="h5" color="text.secondary" align="center" sx={{ mb: 6 }}>
+          We'd love to hear from you
+        </Typography>
 
-            <Paper sx={{ p: 4 }}>
-              <Typography variant="h5" component="h3" gutterBottom>
-                Get in Touch
-              </Typography>
-              
-              <form onSubmit={handleSubmit}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    type="email"
-                    label="Email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    type="submit"
-                    sx={{ mt: 2 }}
-                  >
-                    Send Message
-                  </Button>
-                </Box>
-              </form>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Typography variant="h3" component="h2" gutterBottom>
-              Contact Information
-            </Typography>
-            
-            <Card sx={{ p: 4 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <EmailIcon color="primary" />
-                  <Box>
-                    <Typography variant="h6">Email</Typography>
-                    <Typography color="text.secondary">
-                      info@28degreeswest.com
-                    </Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 6 }}>
+          <Box>
+            <Card variant="outlined" sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h5" component="h3" gutterBottom>
+                  Get in Touch
+                </Typography>
+                <form onSubmit={handleSubmit}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <TextField
+                      fullWidth
+                      label="Name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Subject"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleInputChange}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Message"
+                      name="message"
+                      value={formData.message}
+                      onChange={handleInputChange}
+                      multiline
+                      rows={4}
+                      required
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      size="large"
+                      fullWidth
+                    >
+                      Send Message
+                    </Button>
+                    {successMessage && (
+                      <Alert severity="success">{successMessage}</Alert>
+                    )}
+                    {errorMessage && (
+                      <Alert severity="error">{errorMessage}</Alert>
+                    )}
                   </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <PhoneIcon color="primary" />
-                  <Box>
-                    <Typography variant="h6">Phone</Typography>
-                    <Typography color="text.secondary">
-                      +1 (555) 123-4567
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <LocationIcon color="primary" />
-                  <Box>
-                    <Typography variant="h6">Location</Typography>
-                    <Typography color="text.secondary">
-                      123 South Coast Road<br />
-                      Kingston, Jamaica<br />
-                      PO Box 1234
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
+                </form>
+              </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+          <Box>
+            <Card variant="outlined" sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h5" component="h3" gutterBottom>
+                  Contact Information
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <LocationIcon color="primary" sx={{ mr: 2 }} />
+                  <Typography>123 Beach Road, Negril, Jamaica</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <PhoneIcon color="primary" sx={{ mr: 2 }} />
+                  <Typography>+1 (876) 555-0123</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <EmailIcon color="primary" sx={{ mr: 2 }} />
+                  <Typography>info@28degreeswest.com</Typography>
+                </Box>
+                <Box sx={{ mt: 4 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Business Hours
+                  </Typography>
+                  <Typography>Monday - Friday: 9:00 AM - 6:00 PM</Typography>
+                  <Typography>Saturday: 10:00 AM - 4:00 PM</Typography>
+                  <Typography>Sunday: Closed</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

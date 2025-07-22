@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Grid, Paper, Typography, Box, Button, Card, CardContent, CardMedia } from '@mui/material';
+import { Container, Typography, Box, Button, Card, CardContent, CardMedia } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 const Tours: React.FC = () => {
@@ -9,7 +9,7 @@ const Tours: React.FC = () => {
     {
       id: 1,
       title: 'South Coast Adventure',
-      description: 'Explore the stunning beaches and hidden gems of Jamaica's south coast',
+      description: "Explore the stunning beaches and hidden gems of Jamaica's south coast",
       image: '/assets/images/south-coast-adventure.jpg',
       duration: 'Full Day',
       price: 199.99,
@@ -52,58 +52,72 @@ const Tours: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Container maxWidth="lg" sx={{ mt: 8, mb: 4 }}>
-        <Typography variant="h3" component="h2" gutterBottom align="center">
-          Our Tours
+      <Container maxWidth="lg" sx={{ my: 8 }}>
+        <Typography variant="h3" component="h1" gutterBottom align="center">
+          Our Tours & Experiences
         </Typography>
-        <Typography variant="h5" color="text.secondary" align="center" sx={{ mb: 4 }}>
-          Experience the beauty and culture of Jamaica's south coast
+        <Typography variant="h6" color="text.secondary" align="center" sx={{ mb: 6 }}>
+          Discover the best of Jamaica's South Coast with our curated selection of tours
         </Typography>
 
-        <Grid container spacing={4}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: 4,
+        }}>
           {tours.map((tour) => (
-            <Grid item xs={12} md={4} key={tour.id}>
-              <Card sx={{ height: '100%' }}>
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={tour.image}
-                  alt={tour.title}
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    {tour.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {tour.description}
-                  </Typography>
-                  <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
-                    ${tour.price} per person
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            <Card key={tour.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardMedia
+                component="div"
+                sx={{
+                  pt: '56.25%', // 16:9 aspect ratio
+                  backgroundSize: 'cover',
+                  backgroundImage: `url(${tour.image})`,
+                  backgroundPosition: 'center',
+                }}
+              />
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h5" component="h2" gutterBottom>
+                  {tour.title}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
+                  {tour.description}
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle1" color="primary">
                     Duration: {tour.duration}
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="h6" color="primary">
+                    ${tour.price.toFixed(2)} per person
+                  </Typography>
+                </Box>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Tour includes:
+                  </Typography>
+                  <ul style={{ margin: 0, paddingLeft: 20 }}>
                     {tour.features.map((feature, index) => (
-                      <Typography key={index} variant="body2" color="text.secondary">
-                        {feature}
-                      </Typography>
+                      <li key={index}>
+                        <Typography variant="body2" color="text.secondary">
+                          {feature}
+                        </Typography>
+                      </li>
                     ))}
-                  </Box>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    sx={{ mt: 2 }}
-                    onClick={() => navigate(`/tours/${tour.id}`)}
-                  >
-                    Book Now
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+                  </ul>
+                </Box>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={() => navigate(`/bookings/${tour.id}`)}
+                  sx={{ mt: 'auto' }}
+                >
+                  Book Now
+                </Button>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Container>
     </Box>
   );

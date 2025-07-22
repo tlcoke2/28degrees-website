@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { AppBar, Toolbar, Typography, Box, Button, IconButton } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { Menu as MenuIcon } from '@mui/icons-material';
 
-const AppLayout: React.FC = ({ children }) => {
+interface AppLayoutProps {
+  children: ReactNode;
+}
+
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static">
