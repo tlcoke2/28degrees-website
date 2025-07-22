@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "preview:prod": "vite preview --port 3001 --host",
     "predeploy": "npm run build",
-    "deploy": "node deploy.js"
+    "deploy": "node deploy.cjs"
   },
   "homepage": "https://tlcoke2.github.io/28degrees-website",
   "dependencies": {
