@@ -5,11 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>28 Degrees West - Luxury Tours in Jamaica</title>
     <meta name="description" content="Experience the best of Jamaica with 28 Degrees West. Book your luxury tour today!">
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="favicon.ico" />
     <base href="/" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      // Force reload if page is loaded from cache
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => registration.unregister());
+          });
+        });
+      }
+    </script>
   </body>
 </html>
