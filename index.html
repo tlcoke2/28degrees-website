@@ -3,23 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>28 Degrees West - Luxury Tours in Jamaica</title>
     <meta name="description" content="Experience the best of Jamaica with 28 Degrees West. Book your luxury tour today!">
-    <link rel="icon" type="image/svg+xml" href="favicon.ico" />
-    <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script type="module">
-      // Force reload if page is loaded from cache
+    <script>
+      // Clear service workers and cache
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            registrations.forEach(registration => registration.unregister());
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
+        });
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (let registration of registrations) {
+              registration.unregister();
+            }
           });
         });
       }
+      // Force reload if coming back to page
+      window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+          window.location.reload();
+        }
+      });
     </script>
   </body>
 </html>
