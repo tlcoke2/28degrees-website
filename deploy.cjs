@@ -8,21 +8,23 @@ async function deploy() {
     await execPromise('npm run build');
 
     console.log('Initializing git repository in dist folder...');
+    // Create .nojekyll file to ensure proper GitHub Pages deployment
+    await execPromise('echo "" > dist/.nojekyll');
+    
+    // Initialize git repository and configure user
     await execPromise('cd dist && git init');
     await execPromise('cd dist && git config user.name "GitHub Actions"');
     await execPromise('cd dist && git config user.email "actions@github.com"');
-    await execPromise('cd dist && git add -A');
     
-    // Check if there are changes to commit
-    try {
-      await execPromise('cd dist && git commit -m "Deploy to GitHub Pages"');
-    } catch (error) {
-      // If there's nothing to commit, continue anyway
-      if (!error.stdout.includes('nothing to commit')) {
-        throw error;
-      }
-      console.log('No changes to commit, proceeding with push...');
-    }
+    // Add all files and force commit
+    await execPromise('cd dist && git add -A');
+    await execPromise('cd dist && git commit -m "Deploy to GitHub Pages" --allow-empty');
+    
+    // Add GitHub repository as a remote
+    await execPromise('cd dist && git remote add origin https://github.com/tlcoke2/28degrees-website.git');
+    
+    // Force push to gh-pages branch
+    console.log('Pushing to gh-pages branch...');
 
     console.log('Pushing to gh-pages branch using HTTPS...');
     // Using HTTPS URL for the repository with credentials in URL
