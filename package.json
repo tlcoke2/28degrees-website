@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "preview:prod": "vite preview --port 3001 --host",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "node --max_old_space_size=4096 ./node_modules/gh-pages/bin/gh-pages.js -d dist"
   },
   "homepage": "https://tlcoke2.github.io/28degrees-website",
   "dependencies": {
