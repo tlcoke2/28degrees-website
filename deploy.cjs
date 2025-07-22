@@ -8,16 +8,25 @@ async function deploy() {
     await execPromise('npm run build');
 
     console.log('Initializing git repository in dist folder...');
-    await execPromise('cd dist && git init && git add -A');
+    await execPromise('cd dist && git init');
+    await execPromise('cd dist && git config user.name "GitHub Actions"');
+    await execPromise('cd dist && git config user.email "actions@github.com"');
+    await execPromise('cd dist && git add -A');
     await execPromise('cd dist && git commit -m "Deploy to GitHub Pages"');
 
-    console.log('Pushing to gh-pages branch...');
-    await execPromise('cd dist && git push -f git@github.com:tlcoke2/28degrees-website.git master:gh-pages');
+    console.log('Pushing to gh-pages branch using HTTPS...');
+    // Using HTTPS URL for the repository
+    await execPromise('cd dist && git push -f https://github.com/tlcoke2/28degrees-website.git master:gh-pages');
     
     console.log('Successfully deployed to GitHub Pages!');
     console.log('Your site should be live at: https://tlcoke2.github.io/28degrees-website');
+    console.log('Note: You may be prompted for your GitHub credentials.');
   } catch (error) {
     console.error('Deployment failed:', error);
+    console.log('\nTroubleshooting Tips:');
+    console.log('1. Make sure you have the correct access to the repository');
+    console.log('2. You might need to enter your GitHub credentials when prompted');
+    console.log('3. Check if you have 2FA enabled and use a personal access token as password');
     process.exit(1);
   }
 }
