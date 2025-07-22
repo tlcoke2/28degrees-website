@@ -4,31 +4,29 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  // Use root-relative base path
-  base: './',
-  // Explicitly define resolve configuration
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
+  // Set base URL for GitHub Pages
+  base: '/28degrees-website/',
+  // Server configuration for development
+  server: {
+    port: 3000,
+    strictPort: true,
   },
+  // Build configuration
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
-    // Generate manifest.json for better caching
     manifest: true,
-    // Ensure proper chunking and module loading
+    minify: 'terser',
+    // Disable code splitting to avoid MIME type issues
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
-        },
+        manualChunks: undefined,
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]',
       },
     },
-    // Optimize build for production
-    minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
