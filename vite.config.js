@@ -1,22 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Use absolute base path for Vercel
-  base: '/',
-  // Ensure proper module resolution
-  resolve: {
-    alias: {
-      '@': '/src',
-    },
-  },
-  // Build configuration
+  base: '/28degrees-website/', // GitHub repository name as base path
   build: {
     outDir: 'dist',
-    assetsDir: 'assets',
     sourcemap: true,
-    // Disable code splitting to avoid MIME type issues
     rollupOptions: {
       output: {
         manualChunks: undefined,
@@ -25,20 +16,13 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[hash][extname]',
       },
     },
-    // Ensure proper module loading
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
   },
-  // Server configuration (for development only)
   server: {
     port: 3000,
     strictPort: true,
-    open: true,
   },
-  // Preview configuration (for production preview)
   preview: {
-    port: 3000,
+    port: 3001,
     strictPort: true,
   },
 });
