@@ -31,6 +31,10 @@ jobs:
           mkdir -p docs
           # Copy built files to docs directory
           cp -r dist/* docs/
+          # Copy CNAME file if it exists
+          if [ -f public/CNAME ]; then
+            cp public/CNAME docs/
+          fi
           # Create .nojekyll file to ensure all files are served
           touch docs/.nojekyll
 
