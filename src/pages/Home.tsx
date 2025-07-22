@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Grid, Paper, Typography, Box, Button } from '@mui/material';
+import { Container, Typography, Box, Button, Card, CardContent, CardMedia } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 const Home: React.FC = () => {
@@ -9,7 +9,7 @@ const Home: React.FC = () => {
     {
       id: 1,
       title: 'South Coast Adventure',
-      description: 'Explore the stunning beaches and hidden gems of Jamaica's south coast',
+      description: "Explore the stunning beaches and hidden gems of Jamaica's south coast",
       image: '/assets/images/south-coast-adventure.jpg',
     },
     {
@@ -58,50 +58,47 @@ const Home: React.FC = () => {
         </Button>
       </Box>
 
-      {/* Featured Tours Section */}
-      <Container maxWidth="lg" sx={{ mt: 8, mb: 4 }}>
-        <Typography variant="h3" component="h2" gutterBottom align="center">
+      {/* Featured Tours */}
+      <Container maxWidth="lg" sx={{ my: 8 }}>
+        <Typography variant="h4" component="h2" gutterBottom align="center">
           Featured Tours
         </Typography>
-        <Grid container spacing={4}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+          gap: 4,
+          mt: 4
+        }}>
           {featuredTours.map((tour) => (
-            <Grid item xs={12} sm={6} md={4} key={tour.id}>
-              <Paper
+            <Card key={tour.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardMedia
+                component="div"
                 sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  p: 2,
-                  textAlign: 'center',
+                  pt: '56.25%', // 16:9 aspect ratio
+                  backgroundSize: 'cover',
+                  backgroundImage: `url(${tour.image})`,
+                  backgroundPosition: 'center',
                 }}
-              >
-                <img
-                  src={tour.image}
-                  alt={tour.title}
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    objectFit: 'cover',
-                    marginBottom: '1rem',
-                  }}
-                />
-                <Typography variant="h5" component="h3">
+              />
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" component="h3" gutterBottom>
                   {tour.title}
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
                   {tour.description}
                 </Typography>
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   color="primary"
                   onClick={() => navigate(`/tours/${tour.id}`)}
+                  sx={{ alignSelf: 'flex-start' }}
                 >
                   Learn More
                 </Button>
-              </Paper>
-            </Grid>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Container>
     </Box>
   );

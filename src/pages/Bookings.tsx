@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, Box, Button, TextField, FormControl, InputLabel, Select, MenuItem, Alert } from '@mui/material';
+import { Container, Typography, Box, Button, TextField, Alert, Paper } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 
 interface BookingFormData {
@@ -27,16 +27,9 @@ const Bookings: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = event.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  // Handle form submission
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     try {
       // TODO: Implement actual booking logic (e.g., API call)
       setSuccessMessage('Booking successfully submitted! We will contact you shortly.');
@@ -75,18 +68,23 @@ const Bookings: React.FC = () => {
           </Alert>
         )}
 
-        <Paper sx={{ p: 4 }}>
+        <Paper 
+          component="form"
+          onSubmit={handleFormSubmit}
+          elevation={3} 
+          sx={{ p: 4, maxWidth: 600, mx: 'auto' }}
+        >
           <Typography variant="h5" component="h3" gutterBottom>
             Tour Details
           </Typography>
           
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box component="div" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               fullWidth
               label="Full Name"
               name="fullName"
               value={formData.fullName}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
               required
             />
             
@@ -96,7 +94,7 @@ const Bookings: React.FC = () => {
               label="Email Address"
               name="email"
               value={formData.email}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
               required
             />
             
@@ -106,7 +104,7 @@ const Bookings: React.FC = () => {
               label="Phone Number"
               name="phone"
               value={formData.phone}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               required
             />
             
@@ -116,26 +114,28 @@ const Bookings: React.FC = () => {
               label="Preferred Date"
               name="date"
               value={formData.date}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
               required
               InputLabelProps={{ shrink: true }}
             />
             
-            <FormControl fullWidth>
-              <InputLabel>Number of People</InputLabel>
-              <Select
-                name="numberOfPeople"
-                value={formData.numberOfPeople}
-                onChange={handleInputChange}
-                required
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                  <MenuItem key={num} value={num}>
-                    {num} person{num > 1 ? 's' : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              fullWidth
+              label="Number of People"
+              name="numberOfPeople"
+              type="number"
+              value={formData.numberOfPeople}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                setFormData(prev => ({
+                  ...prev,
+                  numberOfPeople: isNaN(value) ? 1 : Math.max(1, value)
+                }));
+              }}
+              margin="normal"
+              required
+              inputProps={{ min: 1 }}
+            />
             
             <TextField
               fullWidth
@@ -144,15 +144,15 @@ const Bookings: React.FC = () => {
               label="Special Requests"
               name="specialRequests"
               value={formData.specialRequests}
-              onChange={handleInputChange}
+              onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
             />
             
             <Button
+              type="submit"
               variant="contained"
               color="primary"
-              type="submit"
-              onClick={handleSubmit}
-              sx={{ mt: 2 }}
+              fullWidth
+              sx={{ mt: 3 }}
             >
               Submit Booking
             </Button>

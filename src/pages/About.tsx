@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Paper, Typography, Box, Grid, Card, CardContent, CardMedia, Button } from '@mui/material';
+import { Container, Typography, Box, Card, CardContent, CardMedia, Button, Paper } from '@mui/material';
 
 const About: React.FC = () => {
   const teamMembers = [
@@ -55,7 +55,7 @@ const About: React.FC = () => {
           <Typography paragraph>
             28 Degrees West is more than just a tour company - we're your gateway to experiencing the authentic beauty and culture of Jamaica's south coast. Founded by locals who are passionate about sharing their home with the world, we offer unique and memorable experiences that go beyond the typical tourist attractions.
           </Typography>
-          <Typography paragraph>
+          <Typography>
             Our team of expert guides and local partners work together to create personalized tours that showcase the best of what Jamaica has to offer. From hidden beaches to cultural experiences, we help you discover the real Jamaica - the Jamaica that locals know and love.
           </Typography>
         </Paper>
@@ -63,59 +63,82 @@ const About: React.FC = () => {
         <Typography variant="h5" component="h3" gutterBottom align="center">
           Meet Our Team
         </Typography>
-        <Grid container spacing={4} sx={{ mb: 4 }}>
-          {teamMembers.map((member) => (
-            <Grid item xs={12} md={4} key={member.name}>
-              <Card>
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={member.image}
-                  alt={member.name}
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    {member.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {member.role}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {member.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: 4,
+          mt: 4,
+          mb: 4
+        }}>
+          {teamMembers.map((member, index) => (
+            <Card key={index}>
+              <CardMedia
+                component="img"
+                height="300"
+                image={member.image}
+                alt={member.name}
+                sx={{ width: '100%', objectFit: 'cover' }}
+              />
+              <CardContent>
+                <Typography variant="h6" component="h3">
+                  {member.name}
+                </Typography>
+                <Typography variant="subtitle1" color="text.secondary">
+                  {member.role}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {member.description}
+                </Typography>
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
 
         <Typography variant="h5" component="h3" gutterBottom align="center">
           What Our Customers Say
         </Typography>
-        <Grid container spacing={4}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: 4,
+          mt: 4,
+          mb: 4
+        }}>
           {testimonials.map((testimonial, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body1" sx={{ fontStyle: 'italic', mb: 2 }}>
-                  "{testimonial.quote}"
-                </Typography>
-                <Typography variant="subtitle1" color="primary">
+            <Box 
+              key={index} 
+              sx={{ 
+                p: 3, 
+                height: '100%',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <Typography variant="body1" fontStyle="italic" gutterBottom>
+                "{testimonial.quote}"
+              </Typography>
+              <Box sx={{ mt: 'auto' }}>
+                <Typography variant="subtitle2" fontWeight="bold">
                   {testimonial.author}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary">
                   {testimonial.location}
                 </Typography>
-              </Paper>
-            </Grid>
+              </Box>
+            </Box>
           ))}
-        </Grid>
+        </Box>
 
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
+        <Box sx={{ textAlign: 'center', mt: 4, mb: 4 }}>
           <Button
             variant="contained"
             color="primary"
             size="large"
-            onClick={() => window.location.href = '/tours'}
+            onClick={() => { window.location.href = '/tours'; }}
+            sx={{ mt: 2 }}
           >
             Explore Our Tours
           </Button>
