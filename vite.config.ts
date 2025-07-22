@@ -1,17 +1,29 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  // For Vercel deployment, we can use a relative base path
-  base: '/',
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory
+  const env = loadEnv(mode, process.cwd(), '')
+  
+  return {
+    plugins: [react()],
+    // Use relative base path for Vercel deployment
+    base: env.VITE_BASE_URL || '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
     // Generate manifest.json for better caching
     manifest: true,
+    // Ensure proper chunking and module loading
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
+        },
+      },
+    },
     // Optimize build for production
     minify: 'terser',
     terserOptions: {
