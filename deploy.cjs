@@ -12,11 +12,22 @@ async function deploy() {
     await execPromise('cd dist && git config user.name "GitHub Actions"');
     await execPromise('cd dist && git config user.email "actions@github.com"');
     await execPromise('cd dist && git add -A');
-    await execPromise('cd dist && git commit -m "Deploy to GitHub Pages"');
+    
+    // Check if there are changes to commit
+    try {
+      await execPromise('cd dist && git commit -m "Deploy to GitHub Pages"');
+    } catch (error) {
+      // If there's nothing to commit, continue anyway
+      if (!error.stdout.includes('nothing to commit')) {
+        throw error;
+      }
+      console.log('No changes to commit, proceeding with push...');
+    }
 
     console.log('Pushing to gh-pages branch using HTTPS...');
-    // Using HTTPS URL for the repository
-    await execPromise('cd dist && git push -f https://github.com/tlcoke2/28degrees-website.git master:gh-pages');
+    // Using HTTPS URL for the repository with credentials in URL
+    const repoUrl = 'https://github.com/tlcoke2/28degrees-website.git';
+    await execPromise(`cd dist && git push -f ${repoUrl} master:gh-pages`);
     
     console.log('Successfully deployed to GitHub Pages!');
     console.log('Your site should be live at: https://tlcoke2.github.io/28degrees-website');
