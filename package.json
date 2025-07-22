@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "preview:prod": "vite preview --port 3001 --host",
     "predeploy": "npm run build",
-    "deploy": "node deploy.cjs"
+    "deploy": "gh-pages -d dist -b gh-pages"
   },
   "homepage": "https://tlcoke2.github.io/28degrees-website",
   "dependencies": {
