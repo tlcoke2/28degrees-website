@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { readFileSync } from 'fs';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -25,6 +26,9 @@ export default defineConfig(({ command, mode }) => {
       minify: isProduction ? 'terser' : false,
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+        },
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
@@ -37,6 +41,8 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name].[hash][extname]',
         },
       },
+      // Ensure _redirects file is copied to the root of the dist directory
+      copyPublicDir: true,
       terserOptions: isProduction ? {
         compress: {
           drop_console: true,
