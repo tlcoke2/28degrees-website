@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/copy-redirects.js",
     "preview": "vite preview",
     "preview:prod": "vite preview --port 3001 --host",
     "predeploy": "npm run build",
-    "deploy": "node deploy.cjs"
+    "deploy": "node deploy-gh-pages.js"
   },
   "homepage": "https://tlcoke2.github.io/28degrees-website",
   "dependencies": {
@@ -28,7 +28,7 @@
     "react-router-dom": "^6.30.1"
   },
   "devDependencies": {
-    "@types/node": "^24.0.15",
+    "@types/node": "^24.1.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.7.0",
