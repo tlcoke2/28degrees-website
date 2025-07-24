@@ -1,14 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // When building for production (npm run build), use root path for custom domain
-  // For GitHub Pages, we'll set the base URL via environment variable
-  const isProduction = mode === 'production';
-  const base = isProduction ? '/' : '/28degrees-website/';
+  // Always use root path for assets to work on both custom domain and GitHub Pages
+  const base = '/';
 
   return {
     plugins: [react()],
@@ -21,9 +19,9 @@ export default defineConfig(({ command, mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: !isProduction,
+      sourcemap: false, // Disable sourcemaps for production
       manifest: true,
-      minify: isProduction ? 'terser' : false,
+      minify: 'terser',
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         input: {
