@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/copy-redirects.js",
+    "build": "tsc && vite build && node scripts/copy-redirects.js && node scripts/fix-asset-paths.js",
     "preview": "vite preview",
     "preview:prod": "vite preview --port 3001 --host",
     "predeploy": "npm run build",
