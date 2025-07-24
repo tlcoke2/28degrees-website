@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
+import fixAssetPaths from './vite-fix-asset-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -9,8 +10,11 @@ export default defineConfig(({ command, mode }) => {
   const base = '/';
 
   return {
-    plugins: [react()],
-    base,
+    plugins: [
+      react(),
+      fixAssetPaths()
+    ],
+    base: base,
     server: {
       port: 3000,
       strictPort: true,
