@@ -10,6 +10,7 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
+    open: true,
   },
   // Build configuration
   build: {
@@ -34,13 +35,13 @@ export default defineConfig({
       },
     },
   },
-  // Configure development server
-  server: {
-    port: 3000,
-    open: true,
-  },
   // Environment variables to expose to the client
   define: {
     'process.env': {}
+  },
+  // Handle SPA routing
+  preview: {
+    port: 3000,
+    strictPort: true,
   }
 })

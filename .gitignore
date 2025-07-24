@@ -9,6 +9,8 @@ coverage/
 # Production
 build/
 dist/
+!dist/CNAME
+!dist/.nojekyll
 
 # Misc
 .DS_Store
