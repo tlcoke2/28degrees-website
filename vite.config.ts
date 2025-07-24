@@ -19,20 +19,34 @@ export default defineConfig({
     sourcemap: true,
     manifest: true,
     minify: 'terser',
-    // Disable code splitting to avoid MIME type issues
+    // Configure chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Rollup options
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        manualChunks: (id) => {
+          // Create separate chunks for node modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash][extname]',
       },
     },
+    // Terser options for minification
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: process.env.NODE_ENV === 'production',
       },
+    },
+  },
+  // Resolve aliases for absolute imports
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
     },
   },
   // Environment variables to expose to the client
@@ -43,5 +57,9 @@ export default defineConfig({
   preview: {
     port: 3000,
     strictPort: true,
-  }
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['@mui/material', '@emotion/react', '@emotion/styled'],
+  },
 })

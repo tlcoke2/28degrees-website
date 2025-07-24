@@ -1,0 +1,92 @@
+[
+  {
+    "review": "Absolutely breathtaking experience! The Blue Mountains tour exceeded all my expectations. Our guide was incredibly knowledgeable and made the whole trip unforgettable.",
+    "rating": 5,
+    "tour": "blue-mountains-adventure",
+    "createdAt": "2025-03-15T10:30:00.000Z"
+  },
+  {
+    "review": "The Great Barrier Reef was stunning, and the snorkeling spots were perfect. The crew was professional and made sure everyone felt safe in the water. Highly recommend!",
+    "rating": 5,
+    "tour": "great-barrier-reef-snorkeling",
+    "createdAt": "2025-04-22T14:15:00.000Z"
+  },
+  {
+    "review": "The Outback Safari was the highlight of our Australia trip. Seeing Uluru at sunrise was a spiritual experience. Our guide's knowledge of Aboriginal culture was impressive.",
+    "rating": 5,
+    "tour": "outback-safari-adventure",
+    "createdAt": "2025-05-10T08:45:00.000Z"
+  },
+  {
+    "review": "Tasmanian Wilderness Walk was challenging but so rewarding. The landscapes were incredibly diverse, and our guides were fantastic. The food was delicious too!",
+    "rating": 4,
+    "tour": "tasmanian-wilderness-walk",
+    "createdAt": "2025-06-05T16:20:00.000Z"
+  },
+  {
+    "review": "Kangaroo Island is a wildlife paradise! We saw so many animals in their natural habitat. The tour was well-organized, and the guides were passionate about conservation.",
+    "rating": 5,
+    "tour": "kangaroo-island-wildlife",
+    "createdAt": "2025-06-18T11:10:00.000Z"
+  },
+  {
+    "review": "The Blue Mountains tour was good, but I wish we had more time at each lookout. The guide was excellent, though, and the group size was perfect.",
+    "rating": 4,
+    "tour": "blue-mountains-adventure",
+    "createdAt": "2025-07-01T09:30:00.000Z"
+  },
+  {
+    "review": "Snorkeling at the Great Barrier Reef was a dream come true. The coral was vibrant, and we saw so many fish and sea turtles. The boat was comfortable, and lunch was delicious.",
+    "rating": 5,
+    "tour": "great-barrier-reef-snorkeling",
+    "createdAt": "2025-07-05T13:45:00.000Z"
+  },
+  {
+    "review": "The Outback Safari was an amazing adventure. The landscapes were otherworldly, and sleeping under the stars was unforgettable. The food was surprisingly good for being in the middle of nowhere!",
+    "rating": 5,
+    "tour": "outback-safari-adventure",
+    "createdAt": "2025-07-10T17:20:00.000Z"
+  },
+  {
+    "review": "The Tasmanian Wilderness Walk was more challenging than I expected, but the views were worth every step. Our guides were patient and knowledgeable about the local flora and fauna.",
+    "rating": 4,
+    "tour": "tasmanian-wilderness-walk",
+    "createdAt": "2025-07-15T10:15:00.000Z"
+  },
+  {
+    "review": "Kangaroo Island is a must-visit for animal lovers. We saw kangaroos, koalas, and even an echidna! The tour was well-paced, and our guide was incredibly knowledgeable.",
+    "rating": 5,
+    "tour": "kangaroo-island-wildlife",
+    "createdAt": "2025-07-20T14:30:00.000Z"
+  },
+  {
+    "review": "The Blue Mountains tour was good, but the weather wasn't great during our visit. Still, our guide made the most of it and showed us some amazing spots.",
+    "rating": 3,
+    "tour": "blue-mountains-adventure",
+    "createdAt": "2025-07-22T11:45:00.000Z"
+  },
+  {
+    "review": "Snorkeling at the Great Barrier Reef was the highlight of our Australia trip. The visibility was excellent, and we saw so many colorful fish and coral. The crew was professional and safety-conscious.",
+    "rating": 5,
+    "tour": "great-barrier-reef-snorkeling",
+    "createdAt": "2025-07-25T15:20:00.000Z"
+  },
+  {
+    "review": "The Outback Safari was an incredible experience. The landscapes were breathtaking, and learning about Aboriginal culture from our guide was fascinating. The camping facilities were comfortable, and the food was delicious.",
+    "rating": 5,
+    "tour": "outback-safari-adventure",
+    "createdAt": "2025-07-28T09:10:00.000Z"
+  },
+  {
+    "review": "The Tasmanian Wilderness Walk was challenging but so rewarding. The scenery was stunning, and our guides were knowledgeable and encouraging. The eco-lodges were comfortable and had everything we needed.",
+    "rating": 5,
+    "tour": "tasmanian-wilderness-walk",
+    "createdAt": "2025-08-01T12:30:00.000Z"
+  },
+  {
+    "review": "Kangaroo Island is a hidden gem! The wildlife encounters were amazing, and the landscapes were beautiful. Our guide was passionate about conservation and shared so much interesting information.",
+    "rating": 5,
+    "tour": "kangaroo-island-wildlife",
+    "createdAt": "2025-08-05T16:45:00.000Z"
+  }
+]

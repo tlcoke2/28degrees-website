@@ -1,0 +1,101 @@
+[
+  {
+    "name": "Admin User",
+    "email": "admin@28degreeswest.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "admin",
+    "photo": "user-1.jpg",
+    "active": true
+  },
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-2.jpg",
+    "active": true
+  },
+  {
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-3.jpg",
+    "active": true
+  },
+  {
+    "name": "Michael Johnson",
+    "email": "michael@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-4.jpg",
+    "active": true
+  },
+  {
+    "name": "Sarah Wilson",
+    "email": "sarah@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-5.jpg",
+    "active": true
+  },
+  {
+    "name": "David Brown",
+    "email": "david@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-6.jpg",
+    "active": true
+  },
+  {
+    "name": "Emma Davis",
+    "email": "emma@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-7.jpg",
+    "active": true
+  },
+  {
+    "name": "James Wilson",
+    "email": "james@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-8.jpg",
+    "active": true
+  },
+  {
+    "name": "Olivia Taylor",
+    "email": "olivia@example.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "user",
+    "photo": "user-9.jpg",
+    "active": true
+  },
+  {
+    "name": "Tour Guide Tom",
+    "email": "tom@28degreeswest.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "guide",
+    "photo": "guide-1.jpg",
+    "active": true
+  },
+  {
+    "name": "Lead Guide Lisa",
+    "email": "lisa@28degreeswest.com",
+    "password": "pass1234",
+    "passwordConfirm": "pass1234",
+    "role": "lead-guide",
+    "photo": "guide-2.jpg",
+    "active": true
+  }
+]

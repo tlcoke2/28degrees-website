@@ -1,0 +1,263 @@
+[
+  {
+    "name": "Blue Mountains Adventure",
+    "slug": "blue-mountains-adventure",
+    "duration": 3,
+    "maxGroupSize": 10,
+    "difficulty": "medium",
+    "ratingsAverage": 4.8,
+    "ratingsQuantity": 28,
+    "price": 399,
+    "priceDiscount": 50,
+    "summary": "Explore the stunning Blue Mountains on this 3-day adventure tour",
+    "description": "Experience the breathtaking beauty of the Blue Mountains on this unforgettable 3-day adventure. Hike through lush rainforests, marvel at stunning waterfalls, and take in panoramic views from scenic lookouts. Our expert guides will lead you on moderate hikes suitable for most fitness levels, with plenty of opportunities to spot native wildlife along the way. Accommodation is included in comfortable eco-lodges, and all meals feature fresh, local produce. This tour is perfect for nature lovers and adventure seekers looking to experience one of Australia's most spectacular natural wonders.",
+    "imageCover": "blue-mountains-cover.jpg",
+    "images": [
+      "blue-mountains-1.jpg",
+      "blue-mountains-2.jpg",
+      "blue-mountains-3.jpg"
+    ],
+    "startDates": [
+      "2025-08-15T00:00:00.000Z",
+      "2025-09-12T00:00:00.000Z",
+      "2025-10-10T00:00:00.000Z"
+    ],
+    "secretTour": false,
+    "startLocation": {
+      "description": "Katoomba Station, Katoomba",
+      "type": "Point",
+      "coordinates": [150.31152, -33.71202],
+      "address": "Katoomba Station, Katoomba NSW 2780"
+    },
+    "locations": [
+      {
+        "description": "Echo Point Lookout",
+        "type": "Point",
+        "coordinates": [150.31152, -33.71202],
+        "day": 1
+      },
+      {
+        "description": "Wentworth Falls",
+        "type": "Point",
+        "coordinates": [150.37412, -33.7214],
+        "day": 2
+      },
+      {
+        "description": "Three Sisters",
+        "type": "Point",
+        "coordinates": [150.41667, -33.73333],
+        "day": 3
+      }
+    ]
+  },
+  {
+    "name": "Great Barrier Reef Snorkeling",
+    "slug": "great-barrier-reef-snorkeling",
+    "duration": 2,
+    "maxGroupSize": 15,
+    "difficulty": "easy",
+    "ratingsAverage": 4.9,
+    "ratingsQuantity": 42,
+    "price": 299,
+    "priceDiscount": 30,
+    "summary": "Discover the underwater wonders of the Great Barrier Reef on this 2-day snorkeling adventure",
+    "description": "Immerse yourself in the vibrant underwater world of the Great Barrier Reef, one of the seven natural wonders of the world. This 2-day snorkeling adventure is perfect for all skill levels, from beginners to experienced snorkelers. You'll have the opportunity to explore multiple reef sites, each teeming with colorful coral formations and an incredible diversity of marine life, including tropical fish, sea turtles, and even reef sharks. Our experienced marine guides will ensure your safety while providing fascinating insights into this delicate ecosystem. All snorkeling equipment is provided, and our comfortable catamaran features sun decks, freshwater showers, and a delicious buffet lunch. Don't miss this once-in-a-lifetime opportunity to experience the world's largest coral reef system up close!",
+    "imageCover": "reef-snorkeling-cover.jpg",
+    "images": [
+      "reef-snorkeling-1.jpg",
+      "reef-snorkeling-2.jpg",
+      "reef-snorkeling-3.jpg"
+    ],
+    "startDates": [
+      "2025-09-01T00:00:00.000Z",
+      "2025-10-01T00:00:00.000Z",
+      "2025-11-01T00:00:00.000Z"
+    ],
+    "secretTour": false,
+    "startLocation": {
+      "description": "Cairns Marina, Cairns",
+      "type": "Point",
+      "coordinates": [145.7801, -16.9203],
+      "address": "Reef Fleet Terminal, 1 Spence St, Cairns City QLD 4870"
+    },
+    "locations": [
+      {
+        "description": "Green Island",
+        "type": "Point",
+        "coordinates": [145.975, -16.7583],
+        "day": 1
+      },
+      {
+        "description": "Hastings Reef",
+        "type": "Point",
+        "coordinates": [146.0667, -16.5],
+        "day": 2
+      }
+    ]
+  },
+  {
+    "name": "Outback Safari Adventure",
+    "slug": "outback-safari-adventure",
+    "duration": 5,
+    "maxGroupSize": 8,
+    "difficulty": "difficult",
+    "ratingsAverage": 4.7,
+    "ratingsQuantity": 15,
+    "price": 1299,
+    "priceDiscount": 100,
+    "summary": "Experience the rugged beauty of the Australian Outback on this 5-day 4WD safari",
+    "description": "Embark on the ultimate Australian Outback adventure on this 5-day 4WD safari through some of the most remote and spectacular landscapes on Earth. Journey through the heart of the Red Centre, where you'll witness the majesty of Uluru at sunrise and sunset, explore the dramatic domes of Kata Tjuta, and hike through the breathtaking Kings Canyon. Our expert guides will share the rich Aboriginal culture and history of the region, including ancient rock art sites and traditional bush tucker. Nights are spent in comfortable safari-style camps under a canopy of stars, with delicious outback meals prepared by your guide. This small-group tour is limited to just 8 people, ensuring a personalized and immersive experience. Perfect for adventurous travelers seeking an authentic outback experience with all the comforts of guided travel.",
+    "imageCover": "outback-safari-cover.jpg",
+    "images": [
+      "outback-safari-1.jpg",
+      "outback-safari-2.jpg",
+      "outback-safari-3.jpg"
+    ],
+    "startDates": [
+      "2025-08-10T00:00:00.000Z",
+      "2025-09-07T00:00:00.000Z",
+      "2025-10-05T00:00:00.000Z"
+    ],
+    "secretTour": false,
+    "startLocation": {
+      "description": "Ayers Rock Airport, Yulara",
+      "type": "Point",
+      "coordinates": [130.9936, -25.1861],
+      "address": "Ayers Rock Airport, Yulara NT 0872"
+    },
+    "locations": [
+      {
+        "description": "Uluru Sunset Viewing",
+        "type": "Point",
+        "coordinates": [131.0369, -25.3444],
+        "day": 1
+      },
+      {
+        "description": "Kata Tjuta (The Olgas)",
+        "type": "Point",
+        "coordinates": [130.9936, -25.2986],
+        "day": 2
+      },
+      {
+        "description": "Kings Canyon",
+        "type": "Point",
+        "coordinates": [131.5542, -24.2583],
+        "day": 3
+      },
+      {
+        "description": "Uluru Base Walk",
+        "type": "Point",
+        "coordinates": [131.0369, -25.3444],
+        "day": 4
+      },
+      {
+        "description": "Uluru Sunrise Viewing",
+        "type": "Point",
+        "coordinates": [131.0369, -25.3444],
+        "day": 5
+      }
+    ]
+  },
+  {
+    "name": "Tasmanian Wilderness Walk",
+    "slug": "tasmanian-wilderness-walk",
+    "duration": 4,
+    "maxGroupSize": 12,
+    "difficulty": "challenging",
+    "ratingsAverage": 4.9,
+    "ratingsQuantity": 32,
+    "price": 899,
+    "priceDiscount": 75,
+    "summary": "Immerse yourself in the pristine wilderness of Tasmania on this 4-day guided walk",
+    "description": "Discover the untouched beauty of Tasmania's World Heritage-listed wilderness on this 4-day guided walk through some of the island's most spectacular landscapes. Traverse ancient rainforests, climb rugged mountain peaks, and walk along pristine beaches as you experience the diverse ecosystems of this island paradise. Your expert guides will introduce you to the unique flora and fauna that make Tasmania so special, including the famous Tasmanian devil. Each night, relax in comfortable eco-lodges with hot showers and delicious meals prepared with fresh local produce. This moderately challenging walk is suitable for those with a good level of fitness and a sense of adventure. With small group sizes and experienced guides, you'll enjoy an intimate and immersive experience in one of the world's last great wilderness areas.",
+    "imageCover": "tasmania-walk-cover.jpg",
+    "images": [
+      "tasmania-walk-1.jpg",
+      "tasmania-walk-2.jpg",
+      "tasmania-walk-3.jpg"
+    ],
+    "startDates": [
+      "2025-09-15T00:00:00.000Z",
+      "2025-10-13T00:00:00.000Z",
+      "2025-11-10T00:00:00.000Z"
+    ],
+    "secretTour": false,
+    "startLocation": {
+      "description": "Hobart Visitor Information Centre",
+      "type": "Point",
+      "coordinates": [147.325, -42.8806],
+      "address": "20 Davey St, Hobart TAS 7000"
+    },
+    "locations": [
+      {
+        "description": "Mount Field National Park",
+        "type": "Point",
+        "coordinates": [146.7, -42.6833],
+        "day": 1
+      },
+      {
+        "description": "Franklin-Gordon Wild Rivers National Park",
+        "type": "Point",
+        "coordinates": [146.25, -42.4167],
+        "day": 2
+      },
+      {
+        "description": "Cradle Mountain-Lake St Clair National Park",
+        "type": "Point",
+        "coordinates": [146.25, -41.8333],
+        "day": 3
+      },
+      {
+        "description": "Wineglass Bay, Freycinet National Park",
+        "type": "Point",
+        "coordinates": [148.3167, -42.1667],
+        "day": 4
+      }
+    ]
+  },
+  {
+    "name": "Kangaroo Island Wildlife Experience",
+    "slug": "kangaroo-island-wildlife",
+    "duration": 2,
+    "maxGroupSize": 10,
+    "difficulty": "easy",
+    "ratingsAverage": 4.8,
+    "ratingsQuantity": 38,
+    "price": 549,
+    "priceDiscount": 50,
+    "summary": "Get up close with Australia's unique wildlife on this 2-day Kangaroo Island adventure",
+    "description": "Experience the natural wonders of Kangaroo Island, often described as a zoo without fences, on this immersive 2-day wildlife adventure. Just a short ferry ride from Adelaide, Kangaroo Island is home to an abundance of native Australian animals in their natural habitat. During your visit, you'll have the opportunity to see kangaroos, koalas, echidnas, and a variety of bird species in the wild. Visit Seal Bay Conservation Park to observe Australian sea lions on the beach, and Flinders Chase National Park to see the Remarkable Rocks and Admirals Arch. Your knowledgeable guide will provide fascinating insights into the island's unique ecosystem and conservation efforts. Accommodation is included in comfortable lodges, and all meals feature fresh local produce, including the island's famous Ligurian honey and premium wines. This tour is perfect for nature lovers and photographers of all ages and fitness levels.",
+    "imageCover": "kangaroo-island-cover.jpg",
+    "images": [
+      "kangaroo-island-1.jpg",
+      "kangaroo-island-2.jpg",
+      "kangaroo-island-3.jpg"
+    ],
+    "startDates": [
+      "2025-08-20T00:00:00.000Z",
+      "2025-09-17T00:00:00.000Z",
+      "2025-10-15T00:00:00.000Z"
+    ],
+    "secretTour": false,
+    "startLocation": {
+      "description": "Penneshaw Ferry Terminal",
+      "type": "Point",
+      "coordinates": [137.9333, -35.7167],
+      "address": "1 Middle Terrace, Penneshaw SA 5222"
+    },
+    "locations": [
+      {
+        "description": "Seal Bay Conservation Park",
+        "type": "Point",
+        "coordinates": [137.3167, -35.95],
+        "day": 1
+      },
+      {
+        "description": "Flinders Chase National Park",
+        "type": "Point",
+        "coordinates": [136.7, -35.9667],
+        "day": 2
+      }
+    ]
+  }
+]
