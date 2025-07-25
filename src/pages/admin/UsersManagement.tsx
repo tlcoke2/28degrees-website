@@ -3,10 +3,11 @@ import {
   Box, Button, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, Avatar,
-  Chip, MenuItem, Select, FormControl, InputLabel, Grid, Divider,
+  Chip, MenuItem, Select, FormControl, InputLabel, Divider,
   CircularProgress, Snackbar, Alert, Switch, FormControlLabel, 
   Tooltip, TablePagination, InputAdornment
 } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2'; // Import the new Grid v2
 import { 
   Search as SearchIcon, Person as PersonIcon, Email as EmailIcon, 
   Phone as PhoneIcon, AdminPanelSettings as AdminIcon, 
@@ -43,11 +44,28 @@ const UsersManagement: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    rowsPerPage: 10,
+    count: 0
+  });
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: '', 
     severity: 'success' as 'success' | 'error' | 'info' | 'warning' 
   });
+
+  // Show snackbar notification
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // Close dialog
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedUser(null);
+    setEditMode(false);
+  };
   const { isAdmin } = useAuth();
 
   // Load users from API
@@ -569,10 +587,10 @@ const UsersManagement: React.FC = () => {
   };
 
   // Handle pagination
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
     setPagination(prev => ({
       ...prev,
-      page: newPage
+      page: newPage,
     }));
   };
 
