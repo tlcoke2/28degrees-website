@@ -1,42 +1,48 @@
-import { Box, Container, Typography, Link, IconButton } from '@mui/material';
-import { Facebook, Instagram, Twitter, Email, Phone } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import { Box, Container, Typography, Link, IconButton, Divider, Grid } from '@mui/material';
+import { Facebook, Instagram, Twitter, Email, Phone, Room, AccessTime } from '@mui/icons-material';
+import { useTheme, styled } from '@mui/material/styles';
 
-// Custom Grid component using Box with flexbox
-const Grid = ({ children, container, item, xs, sm, md, ...props }: any) => {
-  if (container) {
-    return (
-      <Box 
-        display="flex" 
-        flexWrap="wrap" 
-        width="100%" 
-        margin={-2}
-        {...props}
-      >
-        {children}
-      </Box>
-    );
-  }
-  
-  // Calculate flex basis based on xs, sm, md props
-  const getFlexBasis = () => {
-    if (md) return { flexBasis: `${(100 / 12) * md}%` };
-    if (sm) return { flexBasis: `${(100 / 12) * sm}%` };
-    if (xs) return { flexBasis: `${(100 / 12) * xs}%` };
-    return {};
-  };
+// Styled components
+const FooterLink = styled(Link)(({ theme }) => ({
+  color: 'rgba(255, 255, 255, 0.8)',
+  display: 'block',
+  marginBottom: theme.spacing(1),
+  textDecoration: 'none',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    color: theme.palette.secondary.main,
+    paddingLeft: theme.spacing(0.5),
+  },
+}));
 
-  return (
-    <Box 
-      padding={2}
-      boxSizing="border-box"
-      {...getFlexBasis()}
-      {...props}
+const FooterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <Box sx={{ mb: { xs: 3, md: 0 } }}>
+    <Typography 
+      variant="h6" 
+      component="h3" 
+      sx={{ 
+        color: 'white',
+        fontWeight: 600,
+        mb: 2,
+        position: 'relative',
+        '&:after': {
+          content: '""',
+          position: 'absolute',
+          bottom: -8,
+          left: 0,
+          width: 40,
+          height: '2px',
+          backgroundColor: 'secondary.main',
+        },
+      }}
     >
+      {title}
+    </Typography>
+    <Box>
       {children}
     </Box>
-  );
-};
+  </Box>
+);
 
 const Footer = () => {
   const theme = useTheme();
@@ -46,117 +52,226 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        backgroundColor: theme.palette.primary.main,
-        color: 'white',
-        py: 6,
+        backgroundColor: 'primary.dark',
+        color: 'rgba(255, 255, 255, 0.8)',
+        position: 'relative',
+        py: 8,
         mt: 'auto',
+        '&:before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, secondary.main 0%, primary.light 100%)',
+        },
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={4}>
-          {/* Company Info */}
+        <Grid container spacing={6}>
+          {/* Brand Info */}
           <Grid item xs={12} md={4}>
-            <Box>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-                28 Degrees West
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Discover the beauty of Jamaica's South Coast with our curated tours and experiences.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                <IconButton 
-                  href="https://facebook.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  sx={{ color: 'white' }}
-                >
-                  <Facebook />
-                </IconButton>
-                <IconButton 
-                  href="https://instagram.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  sx={{ color: 'white' }}
-                >
-                  <Instagram />
-                </IconButton>
-                <IconButton 
-                  href="https://twitter.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  sx={{ color: 'white' }}
-                >
-                  <Twitter />
-                </IconButton>
-              </Box>
+            <Box sx={{ mb: 3 }}>
+              <img 
+                src="/assets/logo-white.png" 
+                alt="28 Degrees West Logo" 
+                width={200}
+                style={{ height: 'auto' }}
+              />
+            </Box>
+            <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7 }}>
+              Elevating your Jamaican experience with exclusive VIP entertainment and luxury adventures 
+              designed for the discerning traveler seeking the extraordinary.
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+              <IconButton 
+                href="https://facebook.com" 
+                target="_blank" 
+                rel="noopener"
+                sx={{ 
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'secondary.main',
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <Facebook />
+              </IconButton>
+              <IconButton 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener"
+                sx={{ 
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'secondary.main',
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <Instagram />
+              </IconButton>
+              <IconButton 
+                href="https://twitter.com" 
+                target="_blank" 
+                rel="noopener"
+                sx={{ 
+                  color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'secondary.main',
+                  },
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <Twitter />
+              </IconButton>
             </Box>
           </Grid>
 
           {/* Quick Links */}
-          <Grid item xs={12} sm={4} md={2}>
-            <Box>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                Explore
-              </Typography>
-              <Box>
-                <Link href="/tours" color="inherit" sx={{ display: 'block', mb: 1, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                  Tours
-                </Link>
-                <Link href="/about" color="inherit" sx={{ display: 'block', mb: 1, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                  About Us
-                </Link>
-                <Link href="/contact" color="inherit" sx={{ display: 'block', mb: 1, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                  Contact
-                </Link>
-                <Link href="/privacy" color="inherit" sx={{ display: 'block', mb: 1, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                  Privacy Policy
-                </Link>
-              </Box>
-            </Box>
+          <Grid item xs={12} sm={6} md={2}>
+            <FooterSection title="Explore">
+              <FooterLink href="/experiences">Premium Experiences</FooterLink>
+              <FooterLink href="/destinations">Luxury Destinations</FooterLink>
+              <FooterLink href="/vip-services">VIP Services</FooterLink>
+              <FooterLink href="/gallery">Gallery</FooterLink>
+              <FooterLink href="/testimonials">Testimonials</FooterLink>
+            </FooterSection>
           </Grid>
 
           {/* Contact Info */}
-          <Grid item xs={12} sm={4} md={3}>
-            <Box>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                Contact Us
-              </Typography>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Email sx={{ mr: 1 }} fontSize="small" />
-                  <Link href="mailto:info@28degreeswest.com" color="inherit" sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                    info@28degreeswest.com
-                  </Link>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Phone sx={{ mr: 1 }} fontSize="small" />
-                  <Link href="tel:+18765551234" color="inherit" sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                    +1 (876) 555-1234
-                  </Link>
-                </Box>
+          <Grid item xs={12} sm={6} md={3}>
+            <FooterSection title="Contact Us">
+              <Box sx={{ display: 'flex', mb: 2 }}>
+                <Room sx={{ mr: 1.5, mt: 0.5, color: 'secondary.main', minWidth: 20 }} />
+                <Typography variant="body1">
+                  123 Luxury Lane<br />
+                  Montego Bay, Jamaica
+                </Typography>
               </Box>
-            </Box>
+              <Box sx={{ display: 'flex', mb: 2 }}>
+                <Email sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <FooterLink href="mailto:info@28degreeswest.com">
+                  info@28degreeswest.com
+                </FooterLink>
+              </Box>
+              <Box sx={{ display: 'flex', mb: 2 }}>
+                <Phone sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <FooterLink href="tel:+18765551234">+1 (876) 555-1234</FooterLink>
+              </Box>
+              <Box sx={{ display: 'flex' }}>
+                <AccessTime sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <Typography variant="body1">Mon - Fri: 9am - 6pm EST</Typography>
+              </Box>
+            </FooterSection>
           </Grid>
 
           {/* Newsletter */}
           <Grid item xs={12} md={3}>
-            <Box>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                Newsletter
+            <FooterSection title="Stay Updated">
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Subscribe to our newsletter for exclusive offers and VIP experiences.
               </Typography>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                Subscribe to our newsletter for the latest updates and offers.
-              </Typography>
-              {/* Add newsletter signup form here */}
-            </Box>
+              <Box 
+                component="form" 
+                sx={{ 
+                  display: 'flex',
+                  '&:focus-within button': {
+                    backgroundColor: 'secondary.dark',
+                  },
+                }}
+              >
+                <input
+                  type="email"
+                  placeholder="Your email address"
+                  required
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(255,255,255,0.1)',
+                    color: 'white',
+                    borderRadius: '4px 0 0 4px',
+                    fontSize: '0.9rem',
+                    '&:focus': {
+                      outline: 'none',
+                      borderColor: 'secondary.main',
+                    },
+                    '::placeholder': {
+                      color: 'rgba(255,255,255,0.6)',
+                    },
+                  }}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0 20px',
+                    background: theme.palette.secondary.main,
+                    color: theme.palette.primary.dark,
+                    border: 'none',
+                    borderRadius: '0 4px 4px 0',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: theme.palette.secondary.dark,
+                    },
+                  }}
+                >
+                  Join
+                </button>
+              </Box>
+            </FooterSection>
           </Grid>
         </Grid>
-        
-        {/* Copyright */}
-        <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <Typography variant="body2" align="center">
-            © {currentYear} 28 Degrees West. All rights reserved.
+
+        <Divider sx={{ my: 5, borderColor: 'rgba(255,255,255,0.1)' }} />
+
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            pt: 1,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+            {currentYear} 28 Degrees West. All Rights Reserved.
           </Typography>
+          <Box sx={{ display: 'flex', gap: 3, mt: { xs: 2, sm: 0 } }}>
+            <FooterLink 
+              href="/privacy" 
+              sx={{ 
+                fontSize: '0.8rem',
+                color: 'rgba(255,255,255,0.6)',
+                '&:hover': { color: 'secondary.main' },
+              }}
+            >
+              Privacy Policy
+            </FooterLink>
+            <FooterLink 
+              href="/terms" 
+              sx={{ 
+                fontSize: '0.8rem',
+                color: 'rgba(255,255,255,0.6)',
+                '&:hover': { color: 'secondary.main' },
+              }}
+            >
+              Terms of Service
+            </FooterLink>
+          </Box>
         </Box>
       </Container>
     </Box>

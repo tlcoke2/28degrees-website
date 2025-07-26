@@ -116,6 +116,12 @@ export const getCheckoutSession = catchAsync(async (req, res, next) => {
 // @route   POST /api/v1/bookings/webhook-checkout
 // @access  Public
 export const webhookCheckout = catchAsync(async (req, res, next) => {
+  // Skip webhook processing in development if DISABLE_STRIPE_WEBHOOK is true
+  if (process.env.NODE_ENV === 'development' && process.env.DISABLE_STRIPE_WEBHOOK === 'true') {
+    console.log('Webhook processing disabled in development');
+    return res.status(200).json({ received: true, message: 'Webhook processing disabled in development' });
+  }
+
   const signature = req.headers['stripe-signature'];
   let event;
 
@@ -126,23 +132,30 @@ export const webhookCheckout = catchAsync(async (req, res, next) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // Handle the checkout.session.completed event
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-
-    // Create booking
-    await Booking.create({
-      tour: session.client_reference_id,
-      user: session.metadata.user,
-      price: session.amount_total / 100, // Convert back to dollars
-      participants: parseInt(session.metadata.participants, 10),
-      startDate: new Date(session.metadata.startDate),
-      paymentIntentId: session.payment_intent,
-      status: 'paid',
-    });
+    
+    try {
+      // Create booking
+      await Booking.create({
+        tour: session.client_reference_id,
+        user: session.metadata.user,
+        price: session.amount_total / 100, // Convert back to dollars
+        participants: parseInt(session.metadata.participants, 10),
+        startDate: new Date(session.metadata.startDate),
+        paymentIntentId: session.payment_intent,
+        status: 'paid',
+      });
+      console.log('Booking created from webhook');
+    } catch (error) {
+      console.error('Error creating booking from webhook:', error);
+      // Don't return an error response to Stripe to prevent retries for data issues
+    }
   }
 
   res.status(200).json({ received: true });

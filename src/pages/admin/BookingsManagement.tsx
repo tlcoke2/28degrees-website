@@ -16,24 +16,7 @@ import { bookingService, Booking } from '../../services/api';
 import { format, parseISO } from 'date-fns';
 import { AxiosError } from 'axios';
 
-export interface Booking {
-  id: string;
-  bookingNumber: string;
-  customerName: string;
-  customerEmail: string;
-  tourOrEvent: {
-    id: string;
-    title: string;
-    type: 'tour' | 'event';
-    date: string;
-  };
-  bookingDate: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
-  totalAmount: number;
-  paymentStatus: 'paid' | 'pending' | 'refunded' | 'failed';
-  guests: number;
-  specialRequests?: string;
-}
+// Using the Booking type from the API service instead of redefining it here
 
 const BookingsManagement: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -49,6 +32,12 @@ const BookingsManagement: React.FC = () => {
     message: '', 
     severity: 'success' as 'success' | 'error' | 'info' | 'warning' 
   });
+  const [pagination, setPagination] = useState({
+    page: 0,
+    rowsPerPage: 10,
+    total: 0,
+    totalPages: 0
+  });
   const { isAdmin } = useAuth();
 
   // Load bookings from API
@@ -58,12 +47,22 @@ const BookingsManagement: React.FC = () => {
       
       try {
         setLoading(true);
-        const data = await bookingService.getAllBookings();
-        setBookings(data);
-        setFilteredBookings(data);
+        const response = await bookingService.getAllBookings(
+          pagination.page + 1, // API is 1-indexed, MUI is 0-indexed
+          pagination.rowsPerPage,
+          statusFilter === 'all' ? {} : { status: statusFilter }
+        );
+        
+        setBookings(response.data || []);
+        setPagination(prev => ({
+          ...prev,
+          total: response.total || 0,
+          totalPages: response.totalPages || 0
+        }));
         setError(null);
       } catch (err) {
-        console.error('Error fetching bookings:', err);
+        const error = err as Error;
+        console.error('Error fetching bookings:', error);
         setError('Failed to load bookings. Please try again later.');
         showSnackbar('Failed to load bookings', 'error');
       } finally {
@@ -72,9 +71,9 @@ const BookingsManagement: React.FC = () => {
     };
 
     fetchBookings();
-  }, [isAdmin]);
+  }, [isAdmin, pagination.page, pagination.rowsPerPage, statusFilter]);
 
-  // Filter bookings based on search term and status
+  // Filter bookings based on search term
   useEffect(() => {
     if (!bookings.length) return;
     
@@ -90,12 +89,8 @@ const BookingsManagement: React.FC = () => {
       );
     }
     
-    if (statusFilter !== 'all') {
-      result = result.filter(booking => booking.status === statusFilter);
-    }
-    
     setFilteredBookings(result);
-  }, [searchTerm, statusFilter, bookings]);
+  }, [searchTerm, bookings]);
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
     setSnackbar({
@@ -121,27 +116,46 @@ const BookingsManagement: React.FC = () => {
 
   const handleStatusUpdate = async (bookingId: string, newStatus: Booking['status']) => {
     try {
+      setLoading(true);
       await bookingService.updateBookingStatus(bookingId, newStatus);
+      
+      // Update local state
       const updatedBookings = bookings.map(booking => 
         booking.id === bookingId ? { ...booking, status: newStatus } : booking
       );
+      
       setBookings(updatedBookings);
       setFilteredBookings(updatedBookings);
       showSnackbar('Booking status updated successfully', 'success');
-    } catch (error) {
+    } catch (err) {
+      const error = err as Error;
       console.error('Error updating booking status:', error);
-      showSnackbar('Failed to update booking status', 'error');
+      showSnackbar(error.message || 'Failed to update booking status', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCancelBooking = async (bookingId: string) => {
     if (window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
       try {
+        setLoading(true);
         await bookingService.cancelBooking(bookingId);
-        handleStatusUpdate(bookingId, 'cancelled');
-      } catch (error) {
+        
+        // Update local state
+        const updatedBookings = bookings.map(booking => 
+          booking.id === bookingId ? { ...booking, status: 'cancelled' as const } : booking
+        );
+        
+        setBookings(updatedBookings);
+        setFilteredBookings(updatedBookings);
+        showSnackbar('Booking cancelled successfully', 'success');
+      } catch (err) {
+        const error = err as Error;
         console.error('Error cancelling booking:', error);
-        showSnackbar('Failed to cancel booking', 'error');
+        showSnackbar(error.message || 'Failed to cancel booking', 'error');
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -329,6 +343,25 @@ const BookingsManagement: React.FC = () => {
           </Table>
         </TableContainer>
       </Paper>
+
+      {/* Pagination */}
+      <Box mt={2} display="flex" justifyContent="flex-end">
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={pagination.total}
+          rowsPerPage={pagination.rowsPerPage}
+          page={pagination.page}
+          onPageChange={(e, newPage) => setPagination(prev => ({ ...prev, page: newPage }))}
+          onRowsPerPageChange={(e) => {
+            setPagination({
+              ...pagination,
+              page: 0,
+              rowsPerPage: parseInt(e.target.value, 10)
+            });
+          }}
+        />
+      </Box>
 
       {/* Booking Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="sm" fullWidth>

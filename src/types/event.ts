@@ -1,3 +1,5 @@
+export type EventType = 'concert' | 'festival' | 'exhibition' | 'workshop' | 'other';
+
 export interface Event {
   id?: string;
   title: string;
@@ -6,9 +8,13 @@ export interface Event {
   location: string;
   price: number;
   imageUrl: string;
-  type: 'concert' | 'festival' | 'exhibition' | 'workshop' | 'other';
+  type: EventType;
   featured: boolean;
   capacity: number;
+  includesAccommodation?: boolean;
+  includesTransport?: boolean;
+  includesMeals?: boolean;
+  maxAttendees?: number;
   createdAt?: string;
   updatedAt?: string;
 }

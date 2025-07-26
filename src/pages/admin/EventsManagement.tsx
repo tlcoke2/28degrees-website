@@ -6,15 +6,38 @@ import {
   Select, MenuItem, FormControl, InputLabel, Checkbox, 
   FormControlLabel, CircularProgress, Snackbar, Alert, Chip
 } from '@mui/material';
-import { Add, Edit, Delete, Event, Hotel, DirectionsCar, Restaurant } from '@mui/icons-material';
+import { Event as EventIcon } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { eventService } from '../../services/api';
-import { Event as EventType } from '../../types/event';
+import { Event as EventType, EventType as EventTypeEnum } from '../../types/event';
+
+type EventFormData = Omit<EventType, 'id' | 'createdAt' | 'updatedAt'> & {
+  time?: string;
+  includesAccommodation?: boolean;
+  includesTransport?: boolean;
+  includesMeals?: boolean;
+  maxAttendees?: number;
+};
 
 const EventsManagement: React.FC = () => {
   const [events, setEvents] = useState<EventType[]>([]);
   const [open, setOpen] = useState(false);
-  const [currentEvent, setCurrentEvent] = useState<Partial<EventType>>({});
+  const [currentEvent, setCurrentEvent] = useState<EventFormData>({ 
+    title: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '12:00',
+    location: '',
+    price: 0,
+    imageUrl: '',
+    type: 'other',
+    featured: false,
+    capacity: 50,
+    includesAccommodation: false,
+    includesTransport: false,
+    includesMeals: false,
+    maxAttendees: 100
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +50,12 @@ const EventsManagement: React.FC = () => {
 
   // Event types with their display names and icons
   const eventTypes = [
-    { value: 'gala', label: 'Black Tie Gala', icon: <Event /> },
-    { value: 'beach', label: 'Private Island Beach Party', icon: <Event /> },
-    { value: 'throwback', label: '80s/90s Throwback Fête', icon: <Event /> },
-    { value: 'brunch', label: 'River Brunch Bash', icon: <Event /> },
-    { value: 'excursion', label: 'Cultural Day Excursions', icon: <Event /> },
-    { value: 'soiree', label: 'Sunset Soirée', icon: <Event /> },
-  ];
+    { value: 'concert' as const, label: 'Concert', icon: <EventIcon /> },
+    { value: 'festival' as const, label: 'Festival', icon: <EventIcon /> },
+    { value: 'exhibition' as const, label: 'Exhibition', icon: <EventIcon /> },
+    { value: 'workshop' as const, label: 'Workshop', icon: <EventIcon /> },
+    { value: 'other' as const, label: 'Other', icon: <EventIcon /> },
+  ] as const;
 
   // Load events from API
   useEffect(() => {
@@ -58,16 +80,29 @@ const EventsManagement: React.FC = () => {
   }, [isAdmin]);
 
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
-    });
+    setSnackbar({ open: true, message, severity });
   };
 
-  const handleOpen = (event?: EventType) => {
-    if (event) {
-      setCurrentEvent({ ...event });
+  const handleOpen = (eventData?: EventType) => {
+    if (eventData) {
+      setCurrentEvent({ 
+        ...eventData,
+        // Ensure all required fields are included
+        title: eventData.title || '',
+        description: eventData.description || '',
+        date: eventData.date || new Date().toISOString().split('T')[0],
+        time: 'time' in eventData ? eventData.time : '12:00',
+        location: eventData.location || '',
+        price: eventData.price || 0,
+        imageUrl: eventData.imageUrl || '',
+        type: eventData.type || 'other',
+        featured: eventData.featured || false,
+        capacity: eventData.capacity || 50,
+        includesAccommodation: 'includesAccommodation' in eventData ? eventData.includesAccommodation : false,
+        includesTransport: 'includesTransport' in eventData ? eventData.includesTransport : false,
+        includesMeals: 'includesMeals' in eventData ? eventData.includesMeals : false,
+        maxAttendees: 'maxAttendees' in eventData ? eventData.maxAttendees : 100
+      });
       setIsEditing(true);
     } else {
       setCurrentEvent({
@@ -77,12 +112,13 @@ const EventsManagement: React.FC = () => {
         location: '',
         price: 0,
         imageUrl: '',
-        type: 'gala',
+        type: 'other',
+        featured: false,
+        capacity: 50,
         includesAccommodation: false,
         includesTransport: false,
         includesMeals: false,
-        maxAttendees: 50,
-        isFeatured: false
+        maxAttendees: 100
       });
       setIsEditing(false);
     }
@@ -91,43 +127,65 @@ const EventsManagement: React.FC = () => {
 
   const handleClose = () => {
     setOpen(false);
-    setCurrentEvent({});
+    setCurrentEvent({
+      title: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '12:00',
+      location: '',
+      type: 'concert',
+      price: 0,
+      imageUrl: '',
+      type: 'other',
+      featured: false,
+      capacity: 50,
+      includesAccommodation: false,
+      includesTransport: false,
+      includesMeals: false,
+      maxAttendees: 100
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
+    const { name, value, type } = e.target as HTMLInputElement & { name: keyof EventFormData };
     
     setCurrentEvent(prev => ({
       ...prev,
-      [name!]: type === 'number' ? Number(value) : value
-    }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setCurrentEvent(prev => ({
-      ...prev,
-      [name]: checked
+      [name]: type === 'number' 
+        ? Number(value)
+        : type === 'checkbox'
+        ? (e.target as HTMLInputElement).checked
+        : value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     try {
-      if (isEditing && currentEvent.id) {
-        const updatedEvent = await eventService.updateEvent(currentEvent.id, currentEvent);
-        setEvents(events.map(e => e.id === currentEvent.id ? updatedEvent : e));
-        showSnackbar('Event updated successfully', 'success');
+      if (isEditing && 'id' in currentEvent && currentEvent.id) {
+        // Update existing event
+        const updatedEvent = await eventService.updateEvent(
+          currentEvent.id, 
+          currentEvent as Omit<EventType, 'id' | 'createdAt' | 'updatedAt'>
+        );
+        setEvents(prevEvents => 
+          prevEvents.map(event => event.id === currentEvent.id ? updatedEvent : event)
+        );
+        setSnackbar({ open: true, message: 'Event updated successfully', severity: 'success' });
       } else {
-        const newEvent = await eventService.createEvent(currentEvent as Omit<EventType, 'id' | 'createdAt' | 'updatedAt'>);
-        setEvents([...events, newEvent]);
-        showSnackbar('Event created successfully', 'success');
+        // Create new event
+        const newEvent = await eventService.createEvent(
+          currentEvent as Omit<EventType, 'id' | 'createdAt' | 'updatedAt'>
+        );
+        setEvents(prevEvents => [...prevEvents, newEvent]);
+        setSnackbar({ open: true, message: 'Event created successfully', severity: 'success' });
       }
       handleClose();
-    } catch (error) {
-      console.error('Error saving event:', error);
-      showSnackbar('Failed to save event. Please try again.', 'error');
-    }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
+    } 
   };
 
   const handleDelete = async (id: string) => {
@@ -239,7 +297,7 @@ const EventsManagement: React.FC = () => {
                       <Box>
                         <Typography fontWeight="bold">{event.title}</Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {event.description.substring(0, 50)}...
+                          <EventIcon />{event.description.substring(0, 50)}...
                         </Typography>
                       </Box>
                     </Box>
@@ -253,7 +311,7 @@ const EventsManagement: React.FC = () => {
                         color: 'primary.contrastText'
                       }}
                     />
-                    {event.isFeatured && (
+                    {event.featured && (
                       <Chip 
                         label="Featured"
                         size="small"
@@ -442,8 +500,8 @@ const EventsManagement: React.FC = () => {
                   <FormControlLabel
                     control={
                       <Checkbox
-                        name="isFeatured"
-                        checked={!!currentEvent.isFeatured}
+                        name="featured"
+                        checked={currentEvent.featured}
                         onChange={handleCheckboxChange}
                       />
                     }

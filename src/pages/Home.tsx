@@ -1,104 +1,312 @@
 import React from 'react';
-import { Container, Typography, Box, Button, Card, CardContent, CardMedia } from '@mui/material';
+import { 
+  Container, 
+  Typography, 
+  Box, 
+  Button, 
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  useTheme,
+  useMediaQuery,
+  CardActionArea,
+  CardActions,
+  Rating,
+  styled
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+
+// Hero image
+const heroImage = '/images/hero-bg.jpg';
+
+interface Tour {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  location: string;
+  price: number;
+  duration: string;
+  rating: number;
+}
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  maxWidth: 345,
+  margin: '0 auto',
+  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-8px)',
+    boxShadow: theme.shadows[10],
+  },
+}));
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const featuredTours = [
+  const featuredTours: Tour[] = [
     {
       id: 1,
-      title: 'South Coast Adventure',
-      description: "Explore the stunning beaches and hidden gems of Jamaica's south coast",
-      image: '/assets/images/south-coast-adventure.jpg',
+      title: 'Luxury Beach Getaway',
+      description: 'Experience the finest beaches in Jamaica with our exclusive VIP beach package.',
+      image: '/images/beach.jpg',
+      location: 'Negril',
+      price: 299,
+      duration: '3 days',
+      rating: 4.8
     },
     {
       id: 2,
-      title: 'Waterfall Experience',
-      description: 'Discover the breathtaking waterfalls of Jamaica',
-      image: '/assets/images/waterfall-experience.jpg',
+      title: 'Mountain Retreat',
+      description: 'Discover the breathtaking mountain views of Jamaica in ultimate comfort.',
+      image: '/images/mountain.jpg',
+      location: 'Blue Mountains',
+      price: 399,
+      duration: '5 days',
+      rating: 4.9
     },
     {
       id: 3,
-      title: 'Cultural Tour',
-      description: 'Immerse yourself in Jamaican culture and history',
-      image: '/assets/images/cultural-tour.jpg',
-    },
+      title: 'Cultural Heritage Tour',
+      description: 'Immerse yourself in the rich culture and history of Jamaica.',
+      image: '/images/culture.jpg',
+      location: 'Kingston',
+      price: 249,
+      duration: '2 days',
+      rating: 4.7
+    }
   ];
+
+  const handleTourSelect = (tourId: number) => {
+    navigate(`/tours/${tourId}`);
+  };
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       {/* Hero Section */}
       <Box
         sx={{
-          height: '60vh',
-          background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(/assets/images/hero-bg.jpg)',
+          position: 'relative',
+          height: '100vh',
+          width: '100%',
+          backgroundImage: `url(${heroImage})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           justifyContent: 'center',
+          alignItems: 'center',
           color: 'white',
           textAlign: 'center',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1,
+          },
         }}
       >
-        <Typography variant="h2" component="h1" gutterBottom>
-          Discover Jamaica's South Coast
-        </Typography>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Unique Tours & Experiences
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          size="large"
-          onClick={() => navigate('/tours')}
+        <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2 }}>
+          <Typography
+            variant="h1"
+            component="h1"
+            sx={{
+              fontSize: { xs: '2.5rem', md: '4rem' },
+              fontWeight: 700,
+              mb: 3,
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+            }}
+          >
+            Discover Jamaica's Hidden Gems
+          </Typography>
+          <Typography
+            variant="h5"
+            component="p"
+            sx={{
+              mb: 4,
+              maxWidth: '700px',
+              mx: 'auto',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+            }}
+          >
+            Experience luxury, adventure, and culture like never before with our exclusive tours and experiences.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            onClick={() => navigate('/tours')}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              borderRadius: '50px',
+              textTransform: 'none',
+              fontWeight: 600,
+              mb: 2,
+              mr: 2,
+            }}
+          >
+            Explore Tours
+          </Button>
+          <Button
+            variant="outlined"
+            color="inherit"
+            size="large"
+            onClick={() => navigate('/contact')}
+            sx={{
+              px: 4,
+              py: 1.5,
+              fontSize: '1rem',
+              borderRadius: '50px',
+              textTransform: 'none',
+              fontWeight: 600,
+              color: 'white',
+              borderColor: 'white',
+              '&:hover': {
+                borderColor: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              },
+            }}
+          >
+            Contact Us
+          </Button>
+        </Container>
+
+        {/* Scroll indicator */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: '40px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 2,
+            textAlign: 'center',
+            opacity: 0.7,
+            '&:hover': {
+              opacity: 1,
+              cursor: 'pointer',
+            },
+          }}
+          onClick={() => {
+            window.scrollTo({
+              top: window.innerHeight,
+              behavior: 'smooth',
+            });
+          }}
         >
-          View Tours
-        </Button>
+          <Typography variant="caption" display="block" sx={{ mb: 1, letterSpacing: 2 }}>
+            SCROLL
+          </Typography>
+          <Box
+            sx={{
+              width: '24px',
+              height: '40px',
+              border: '2px solid white',
+              borderRadius: '12px',
+              position: 'relative',
+              margin: '0 auto',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                width: '4px',
+                height: '8px',
+                background: 'white',
+                left: '50%',
+                top: '8px',
+                transform: 'translateX(-50%)',
+                borderRadius: '2px',
+                animation: 'scroll 2s infinite',
+                '@keyframes scroll': {
+                  '0%': {
+                    transform: 'translate(-50%, 0)',
+                    opacity: 1,
+                  },
+                  '100%': {
+                    transform: 'translate(-50%, 20px)',
+                    opacity: 0,
+                  },
+                },
+              },
+            }}
+          />
+        </Box>
       </Box>
 
-      {/* Featured Tours */}
-      <Container maxWidth="lg" sx={{ my: 8 }}>
-        <Typography variant="h4" component="h2" gutterBottom align="center">
+      {/* Featured Tours Section */}
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Typography variant="h2" component="h2" sx={{ textAlign: 'center', mb: 6, fontWeight: 700 }}>
           Featured Tours
         </Typography>
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-          gap: 4,
-          mt: 4
-        }}>
+        <Grid container spacing={4}>
           {featuredTours.map((tour) => (
-            <Card key={tour.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardMedia
-                component="div"
-                sx={{
-                  pt: '56.25%', // 16:9 aspect ratio
-                  backgroundSize: 'cover',
-                  backgroundImage: `url(${tour.image})`,
-                  backgroundPosition: 'center',
-                }}
-              />
-              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <Typography variant="h6" component="h3" gutterBottom>
-                  {tour.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flexGrow: 1 }}>
-                  {tour.description}
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => navigate(`/tours/${tour.id}`)}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  Learn More
-                </Button>
-              </CardContent>
-            </Card>
+            <Grid item key={tour.id} xs={12} sm={6} md={4}>
+              <StyledCard>
+                <CardActionArea onClick={() => handleTourSelect(tour.id)}>
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={tour.image}
+                    alt={tour.title}
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h5" component="div">
+                      {tour.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '60px' }}>
+                      {tour.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <LocationOnIcon color="primary" fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {tour.location}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <AccessTimeIcon color="primary" fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {tour.duration}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <MonetizationOnIcon color="primary" fontSize="small" sx={{ mr: 0.5 }} />
+                      <Typography variant="h6" color="primary">
+                        ${tour.price} USD
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Rating value={tour.rating} precision={0.1} readOnly />
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        {tour.rating.toFixed(1)}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+                <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+                  <Button
+                    size="small"
+                    color="primary"
+                    variant="contained"
+                    onClick={() => handleTourSelect(tour.id)}
+                    fullWidth
+                    sx={{ mx: 2 }}
+                  >
+                    Learn More
+                  </Button>
+                </CardActions>
+              </StyledCard>
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       </Container>
     </Box>
   );

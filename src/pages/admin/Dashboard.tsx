@@ -1,27 +1,50 @@
-import React from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
-import { signOut } from 'firebase/auth';
+// TODO: Uncomment and configure Firebase when ready
+// import { useAuthState } from 'react-firebase-hooks/auth';
+// import { auth } from '../../config/firebase';
+// import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Grid, Typography, Paper } from '@mui/material';
+import { Box, Button, Container, Typography, Paper } from '@mui/material';
+import { styled } from '@mui/material/styles';
+
+// Create a styled Paper component for the dashboard cards
+const DashboardCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+}));
+
+const StyledGrid = styled('div')(({ theme }) => ({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+  gap: theme.spacing(3),
+  width: '100%',
+  [theme.breakpoints.down('sm')]: {
+    gridTemplateColumns: '1fr',
+  },
+}));
 
 const AdminDashboard = () => {
-  const [user] = useAuthState(auth);
+  // TODO: Uncomment when Firebase is configured
+  // const [user] = useAuthState(auth);
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      navigate('/admin/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+  // TODO: Uncomment when Firebase is configured
+  // const handleSignOut = async () => {
+  //   try {
+  //     await signOut(auth);
+  //     navigate('/admin/login');
+  //   } catch (error) {
+  //     console.error('Error signing out:', error);
+  //   }
+  // };
 
-  if (!user) {
-    navigate('/admin/login');
-    return null;
-  }
+  // TODO: Uncomment when Firebase is configured
+  // if (!user) {
+  //   navigate('/admin/login');
+  //   return null;
+  // }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -29,68 +52,70 @@ const AdminDashboard = () => {
         <Typography variant="h4" component="h1">
           Admin Dashboard
         </Typography>
+        {/* TODO: Uncomment when Firebase is configured
         <Button variant="outlined" onClick={handleSignOut}>
           Sign Out
         </Button>
+        */}
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+      <StyledGrid>
+        <DashboardCard>
+          <div>
             <Typography variant="h6" gutterBottom>
               Tours Management
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
               Add, edit, or remove tours and packages.
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/admin/tours')}>
-              Manage Tours
-            </Button>
-          </Paper>
-        </Grid>
+          </div>
+          <Button variant="contained" fullWidth onClick={() => navigate('/admin/tours')}>
+            Manage Tours
+          </Button>
+        </DashboardCard>
 
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+        <DashboardCard>
+          <div>
             <Typography variant="h6" gutterBottom>
               Events Management
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Manage events and immersive experiences.
+              Manage upcoming events and activities.
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/admin/events')}>
-              Manage Events
-            </Button>
-          </Paper>
-        </Grid>
+          </div>
+          <Button variant="contained" fullWidth onClick={() => navigate('/admin/events')}>
+            Manage Events
+          </Button>
+        </DashboardCard>
 
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+        <DashboardCard>
+          <div>
             <Typography variant="h6" gutterBottom>
               Bookings
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              View and manage customer bookings.
+              View and manage tour and event bookings.
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/admin/bookings')}>
-              View Bookings
-            </Button>
-          </Paper>
-        </Grid>
+          </div>
+          <Button variant="contained" fullWidth onClick={() => navigate('/admin/bookings')}>
+            View Bookings
+          </Button>
+        </DashboardCard>
 
-        <Grid item xs={12} md={6} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
+        <DashboardCard>
+          <div>
             <Typography variant="h6" gutterBottom>
               User Management
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Manage admin and user accounts.
+              Manage user accounts and permissions.
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/admin/users')}>
-              Manage Users
-            </Button>
-          </Paper>
-        </Grid>
-      </Grid>
+          </div>
+          <Button variant="contained" fullWidth onClick={() => navigate('/admin/users')}>
+            Manage Users
+          </Button>
+        </DashboardCard>
+      </StyledGrid>
     </Container>
   );
 };
