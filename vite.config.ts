@@ -19,9 +19,11 @@ export default defineConfig(({ command, mode }) => {
     
     // Server configuration for development
     server: {
-      port: 3000,
-      strictPort: true,
+      port: 3001,
+      strictPort: true, // Ensure the port is strictly used
       open: true,
+      host: '0.0.0.0', // Explicitly listen on all network interfaces
+      cors: true,
     },
     
     // Build configuration

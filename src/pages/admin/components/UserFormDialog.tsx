@@ -5,7 +5,7 @@ import {
   Select, MenuItem, CircularProgress, Box,
   SelectChangeEvent
 } from '@mui/material';
-import { User } from '../../../services/api';
+// User type is not directly used in this file
 
 export interface UserFormData {
   id?: string;
@@ -22,18 +22,7 @@ export interface UserFormData {
   lastLogin?: string;
 }
 
-// Default form values
-const defaultFormData: UserFormData = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  role: 'user',
-  status: 'active',
-  password: '',
-  confirmPassword: '',
-  joinDate: new Date().toISOString(),
-};
+// Default form values - removed as it's not used in this file
 
 interface UserFormDialogProps {
   open: boolean;

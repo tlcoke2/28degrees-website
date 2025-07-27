@@ -1,4 +1,5 @@
-import { Box, Container, Typography, Link, IconButton, Divider, Grid } from '@mui/material';
+import { Box, Container, Typography, Link, IconButton, Divider } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2';
 import { Facebook, Instagram, Twitter, Email, Phone, Room, AccessTime } from '@mui/icons-material';
 import { useTheme, styled } from '@mui/material/styles';
 
@@ -13,9 +14,24 @@ const FooterLink = styled(Link)(({ theme }) => ({
     color: theme.palette.secondary.main,
     paddingLeft: theme.spacing(0.5),
   },
+  '&:focus': {
+    outline: 'none',
+    color: theme.palette.secondary.main,
+  },
+  '&.MuiLink-root': {
+    color: 'rgba(255, 255, 255, 0.8)',
+    '&:hover': {
+      color: theme.palette.secondary.main,
+    },
+  },
 }));
 
-const FooterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+interface FooterSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+const FooterSection = ({ title, children }: FooterSectionProps) => (
   <Box sx={{ mb: { xs: 3, md: 0 } }}>
     <Typography 
       variant="h6" 
@@ -71,7 +87,7 @@ const Footer = () => {
       <Container maxWidth="lg">
         <Grid container spacing={6}>
           {/* Brand Info */}
-          <Grid item xs={12} md={4}>
+          <Grid xs={12} md={4}>
             <Box sx={{ mb: 3 }}>
               <img 
                 src="/assets/logo-white.png" 
@@ -137,7 +153,7 @@ const Footer = () => {
           </Grid>
 
           {/* Quick Links */}
-          <Grid item xs={12} sm={6} md={2}>
+          <Grid xs={12} sm={6} md={2}>
             <FooterSection title="Explore">
               <FooterLink href="/experiences">Premium Experiences</FooterLink>
               <FooterLink href="/destinations">Luxury Destinations</FooterLink>
@@ -148,7 +164,7 @@ const Footer = () => {
           </Grid>
 
           {/* Contact Info */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={4}>
             <FooterSection title="Contact Us">
               <Box sx={{ display: 'flex', mb: 2 }}>
                 <Room sx={{ mr: 1.5, mt: 0.5, color: 'secondary.main', minWidth: 20 }} />
@@ -175,7 +191,7 @@ const Footer = () => {
           </Grid>
 
           {/* Newsletter */}
-          <Grid item xs={12} md={3}>
+          <Grid xs={12} md={4}>
             <FooterSection title="Stay Updated">
               <Typography variant="body1" sx={{ mb: 2 }}>
                 Subscribe to our newsletter for exclusive offers and VIP experiences.
@@ -189,11 +205,12 @@ const Footer = () => {
                   },
                 }}
               >
-                <input
+                <Box
+                  component="input"
                   type="email"
                   placeholder="Your email address"
                   required
-                  style={{
+                  sx={{
                     flex: 1,
                     padding: '12px 16px',
                     border: '1px solid rgba(255,255,255,0.2)',
@@ -205,14 +222,15 @@ const Footer = () => {
                       outline: 'none',
                       borderColor: 'secondary.main',
                     },
-                    '::placeholder': {
+                    '&::placeholder': {
                       color: 'rgba(255,255,255,0.6)',
                     },
                   }}
                 />
-                <button
+                <Box
+                  component="button"
                   type="submit"
-                  style={{
+                  sx={{
                     padding: '0 20px',
                     background: theme.palette.secondary.main,
                     color: theme.palette.primary.dark,
@@ -230,7 +248,7 @@ const Footer = () => {
                   }}
                 >
                   Join
-                </button>
+                </Box>
               </Box>
             </FooterSection>
           </Grid>

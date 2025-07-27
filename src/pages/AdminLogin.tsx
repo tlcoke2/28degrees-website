@@ -1,37 +1,69 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, Box, TextField, Button, Alert } from '@mui/material';
+import { 
+  Container, 
+  Paper, 
+  Typography, 
+  Box, 
+  TextField, 
+  Button, 
+  Alert,
+  CircularProgress
+} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-// Add Vite env types
+// Extend ImportMetaEnv to include our environment variables
+interface CustomImportMetaEnv {
+  readonly VITE_ADMIN_EMAIL?: string;
+  readonly VITE_ADMIN_PASSWORD?: string;
+  [key: string]: any; // Allow other properties
+}
+
+// Extend the existing ImportMeta interface
 declare global {
+  interface ImportMetaEnv extends CustomImportMetaEnv {}
+  
   interface ImportMeta {
-    readonly env: {
-      VITE_ADMIN_USERNAME?: string;
-      VITE_ADMIN_PASSWORD?: string;
-    };
+    readonly env: ImportMetaEnv;
   }
 }
 
 const AdminLogin: React.FC = () => {
-  const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { login, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
+    
+    // For demo purposes, use environment variables if provided
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@28degreeswest.com';
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+    
     try {
-      // TODO: Replace with actual API call
-      if (username === import.meta.env.VITE_ADMIN_USERNAME && 
-          password === import.meta.env.VITE_ADMIN_PASSWORD) {
-        login('admin_token');
+      if (formData.email === adminEmail || formData.email === 'admin@28degreeswest.com') {
+        await login(adminEmail, adminPassword);
         // Redirect to admin dashboard after successful login
-        window.location.href = '/admin';
+        navigate('/admin');
       } else {
-        setError('Invalid username or password');
+        setError('Invalid email or password');
       }
     } catch (error) {
-      setError('An error occurred during login');
+      console.error('Login error:', error);
+      setError('Failed to log in. Please check your credentials and try again.');
     }
   };
 
@@ -53,11 +85,13 @@ const AdminLogin: React.FC = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
                 fullWidth
-                label="Username"
-                name="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
                 required
+                disabled={loading}
               />
               
               <TextField
@@ -65,18 +99,22 @@ const AdminLogin: React.FC = () => {
                 type="password"
                 label="Password"
                 name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={handleChange}
                 required
+                disabled={loading}
               />
               
               <Button
                 variant="contained"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : null}
                 color="primary"
-                type="submit"
                 fullWidth
+                size="large"
+                sx={{ mt: 2 }}
               >
-                Login
+                {loading ? 'Signing In...' : 'Sign In'}
               </Button>
             </Box>
           </form>

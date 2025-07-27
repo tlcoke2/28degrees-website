@@ -7,8 +7,11 @@ import {
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { User } from '../../../services/api';
 
+// Extend the User type to ensure it has an id property
+type TableUser = User & { id: string };
+
 interface UsersTableProps {
-  users: User[];
+  users: TableUser[];
   loading: boolean;
   pagination: {
     page: number;
@@ -18,7 +21,7 @@ interface UsersTableProps {
   currentUserId?: string;
   onPageChange: (event: unknown, newPage: number) => void;
   onRowsPerPageChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onEdit: (user: User) => void;
+  onEdit: (user: TableUser) => void;
   onDelete: (userId: string) => void;
   onStatusToggle: (userId: string, currentStatus: User['status']) => void;
   isAdmin: boolean;

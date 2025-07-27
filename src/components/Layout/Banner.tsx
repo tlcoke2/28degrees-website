@@ -1,6 +1,7 @@
 import { Box, Container, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GlobalStyles } from '@mui/material';
 
 const Banner = () => {
   const theme = useTheme();
@@ -187,19 +188,21 @@ const Banner = () => {
       </Container>
 
       {/* Animation keyframes */}
-      <style jsx global>{`
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% {
-            transform: translateY(0) translateX(-50%);
-          }
-          40% {
-            transform: translateY(-10px) translateX(-50%);
-          }
-          60% {
-            transform: translateY(-5px) translateX(-50%);
-          }
-        }
-      `}</style>
+      <GlobalStyles
+        styles={{
+          '@keyframes bounce': {
+            '0%, 20%, 50%, 80%, 100%': {
+              transform: 'translateY(0) translateX(-50%)',
+            },
+            '40%': {
+              transform: 'translateY(-10px) translateX(-50%)',
+            },
+            '60%': {
+              transform: 'translateY(-5px) translateX(-50%)',
+            },
+          },
+        }}
+      />
     </Box>
   );
 };

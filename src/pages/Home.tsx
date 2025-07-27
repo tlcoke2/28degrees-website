@@ -4,17 +4,15 @@ import {
   Typography, 
   Box, 
   Button, 
-  Grid,
   Card,
   CardContent,
   CardMedia,
-  useTheme,
-  useMediaQuery,
   CardActionArea,
   CardActions,
   Rating,
   styled
 } from '@mui/material';
+import Grid from '@mui/material/Unstable_Grid2'; // Import Grid2 for better TypeScript support
 import { useNavigate } from 'react-router-dom';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -46,8 +44,6 @@ const StyledCard = styled(Card)(({ theme }) => ({
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const featuredTours: Tour[] = [
     {
@@ -244,14 +240,14 @@ const Home: React.FC = () => {
 
       {/* Featured Tours Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h2" component="h2" sx={{ textAlign: 'center', mb: 6, fontWeight: 700 }}>
+        <Typography variant="h3" component="h2" align="center" sx={{ mb: 6, fontWeight: 600 }}>
           Featured Tours
         </Typography>
         <Grid container spacing={4}>
           {featuredTours.map((tour) => (
-            <Grid item key={tour.id} xs={12} sm={6} md={4}>
+            <Grid xs={12} sm={6} md={4} key={tour.id}>
               <StyledCard>
-                <CardActionArea onClick={() => handleTourSelect(tour.id)}>
+                <CardActionArea>
                   <CardMedia
                     component="img"
                     height="200"

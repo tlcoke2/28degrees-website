@@ -6,10 +6,11 @@ import { CircularProgress, Box } from '@mui/material';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  // adminOnly is kept in the interface for future use
   adminOnly?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, adminOnly = false }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [user, loading] = useAuthState(auth);
   const location = useLocation();
 

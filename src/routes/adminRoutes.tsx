@@ -8,7 +8,7 @@ const Dashboard = lazy(() => import('../pages/admin/Dashboard'));
 const ToursManagement = lazy(() => import('../pages/admin/ToursManagement'));
 const EventsManagement = lazy(() => import('../pages/admin/EventsManagement'));
 const BookingsManagement = lazy(() => import('../pages/admin/BookingsManagement'));
-const UsersManagement = lazy(() => import('../pages/admin/UsersManagement.new'));
+const UsersManagement = lazy(() => import('../pages/admin/UsersManagement'));
 
 const AdminRoutes = () => (
   <Routes>
