@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Paper, Button, Divider, Container } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useSnackbar } from 'notistack';
 
 interface LocationState {
   paymentIntentId: string;
@@ -18,14 +17,14 @@ interface LocationState {
 const BookingConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar();
   
   // Default values in case of direct navigation
-  const { 
+  const state = location.state as Partial<LocationState> | null;
+  const {
     paymentIntentId = 'N/A',
     amount = 0,
     bookingDetails = {}
-  } = (location.state as LocationState) || {};
+  } = state || {};
 
   const handleViewBookings = () => {
     navigate('/my-bookings');

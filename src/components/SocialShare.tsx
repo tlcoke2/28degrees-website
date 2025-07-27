@@ -15,12 +15,10 @@ import {
   Share as ShareIcon,
   Facebook as FacebookIcon,
   Twitter as TwitterIcon,
-  Instagram as InstagramIcon,
   Link as LinkIcon,
   Email as EmailIcon,
   WhatsApp as WhatsAppIcon
 } from '@mui/icons-material';
-import { useCopyToClipboard } from 'react-use';
 
 type SocialShareProps = {
   url: string;
@@ -42,8 +40,19 @@ const SocialShare: React.FC<SocialShareProps> = ({
   color = 'primary'
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
-  const [copyState, copyToClipboard] = useCopyToClipboard();
   const [copied, setCopied] = React.useState(false);
+  
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return true;
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      return false;
+    }
+  };
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -62,13 +71,6 @@ const SocialShare: React.FC<SocialShareProps> = ({
 
   const open = Boolean(anchorEl);
   const id = open ? 'social-share-popover' : undefined;
-
-  const shareData = {
-    url,
-    title,
-    text: description,
-    hashtags: hashtags.join(',')
-  };
 
   const shareOptions = [
     {

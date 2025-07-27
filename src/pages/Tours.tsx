@@ -21,8 +21,6 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { addDays } from 'date-fns';
 import SocialShare from '../components/SocialShare';
 
@@ -142,8 +140,8 @@ const Tours: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Container maxWidth="lg" sx={{ my: 8 }}>
+    <div>
+      <Container maxWidth="lg" sx={{ py: 8 }}>
         <Typography variant="h3" component="h1" gutterBottom align="center">
           Our Tours & Experiences
         </Typography>
@@ -226,25 +224,23 @@ const Tours: React.FC = () => {
         <DialogContent>
           {selectedTour && (
             <Box mt={2}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <Box mb={3}>
-                  <DatePicker
-                    label="Tour Date"
-                    value={bookingDate}
-                    onChange={(newValue) => setBookingDate(newValue)}
-                    minDate={addDays(new Date(), 1)}
-                    renderInput={(params) => (
-                      <TextField 
-                        {...params} 
-                        fullWidth 
-                        margin="normal"
-                        error={!!errors.bookingDate}
-                        helperText={errors.bookingDate}
-                      />
-                    )}
-                  />
-                </Box>
-              </LocalizationProvider>
+              <Box mb={3}>
+                <DatePicker
+                  label="Tour Date"
+                  value={bookingDate}
+                  onChange={(newValue) => setBookingDate(newValue)}
+                  minDate={addDays(new Date(), 1)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      margin: 'normal',
+                      error: !!errors.bookingDate,
+                      helperText: errors.bookingDate,
+                      required: true
+                    }
+                  }}
+                />
+              </Box>
 
               <FormControl fullWidth margin="normal" error={!!errors.participants}>
                 <InputLabel>Number of Participants</InputLabel>
@@ -337,7 +333,7 @@ const Tours: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </div>
   );
 };
 

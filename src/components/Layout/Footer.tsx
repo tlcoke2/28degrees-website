@@ -1,16 +1,35 @@
-import { Box, Container, Typography, Link, IconButton, Divider } from '@mui/material';
-import Grid from '@mui/material/Unstable_Grid2';
-import { Facebook, Instagram, Twitter, Email, Phone, Room, AccessTime } from '@mui/icons-material';
-import { useTheme, styled } from '@mui/material/styles';
+import { 
+  Box, 
+  Container, 
+  Grid, 
+  Typography, 
+  Link as MuiLink, 
+  Divider,
+  styled,
+  useTheme
+} from '@mui/material';
+import { 
+  Email as EmailIcon, 
+  Phone as PhoneIcon, 
+  LocationOn as LocationIcon, 
+  AccessTime as AccessTimeIcon 
+} from '@mui/icons-material';
 import SocialMediaLinks from '../SocialMediaLinks';
 
-// Styled components
-const FooterLink = styled(Link)(({ theme }) => ({
+// Styled components with proper theme typing
+import { Theme } from '@mui/material/styles';
+
+interface StyledProps {
+  theme: Theme;
+}
+
+const FooterLink = styled(MuiLink)(({ theme }: StyledProps) => ({
   color: 'rgba(255, 255, 255, 0.8)',
   display: 'block',
   marginBottom: theme.spacing(1),
   textDecoration: 'none',
   transition: 'all 0.3s ease',
+  cursor: 'pointer',
   '&:hover': {
     color: theme.palette.secondary.main,
     paddingLeft: theme.spacing(0.5),
@@ -18,13 +37,7 @@ const FooterLink = styled(Link)(({ theme }) => ({
   '&:focus': {
     outline: 'none',
     color: theme.palette.secondary.main,
-  },
-  '&.MuiLink-root': {
-    color: 'rgba(255, 255, 255, 0.8)',
-    '&:hover': {
-      color: theme.palette.secondary.main,
-    },
-  },
+  }
 }));
 
 interface FooterSectionProps {
@@ -134,24 +147,24 @@ const Footer = () => {
           <Grid xs={12} sm={6} md={4}>
             <FooterSection title="Contact Us">
               <Box sx={{ display: 'flex', mb: 2 }}>
-                <Room sx={{ mr: 1.5, mt: 0.5, color: 'secondary.main', minWidth: 20 }} />
+                <LocationIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
                 <Typography variant="body1">
                   123 Luxury Lane<br />
                   Montego Bay, Jamaica
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', mb: 2 }}>
-                <Email sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <EmailIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
                 <FooterLink href="mailto:info@28degreeswest.com">
                   info@28degreeswest.com
                 </FooterLink>
               </Box>
               <Box sx={{ display: 'flex', mb: 2 }}>
-                <Phone sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <PhoneIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
                 <FooterLink href="tel:+18765551234">+1 (876) 555-1234</FooterLink>
               </Box>
               <Box sx={{ display: 'flex' }}>
-                <AccessTime sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+                <AccessTimeIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
                 <Typography variant="body1">Mon - Fri: 9am - 6pm EST</Typography>
               </Box>
             </FooterSection>

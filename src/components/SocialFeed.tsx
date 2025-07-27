@@ -139,7 +139,7 @@ const SocialFeed: React.FC = () => {
     return num.toString();
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: Platform) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: Platform) => {
     setActiveTab(newValue);
   };
 
