@@ -153,7 +153,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               >
                 <Box
                   component="img"
-                  src="/logo.png"
+                  src="/assets/logo.png"
                   alt="28 Degrees West Logo"
                   sx={{
                     height: 40,

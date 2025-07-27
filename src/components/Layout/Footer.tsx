@@ -104,7 +104,7 @@ const Footer = () => {
           <Grid xs={12} md={4}>
             <Box sx={{ mb: 3 }}>
               <img 
-                src="/assets/logo-white.png" 
+                src="/assets/logo.png" 
                 alt="28 Degrees West Logo" 
                 width={200}
                 style={{ height: 'auto' }}
