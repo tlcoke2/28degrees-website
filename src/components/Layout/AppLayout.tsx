@@ -58,6 +58,7 @@ interface AppLayoutProps {
 const navItems = [
   { name: 'Home', path: '/' },
   { name: 'Tours', path: '/tours' },
+  { name: 'Social', path: '/social' },
   { name: 'About', path: '/about' },
   { name: 'Contact', path: '/contact' },
 ];

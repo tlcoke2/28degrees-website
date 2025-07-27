@@ -2,6 +2,7 @@ import { Box, Container, Typography, Link, IconButton, Divider } from '@mui/mate
 import Grid from '@mui/material/Unstable_Grid2';
 import { Facebook, Instagram, Twitter, Email, Phone, Room, AccessTime } from '@mui/icons-material';
 import { useTheme, styled } from '@mui/material/styles';
+import SocialMediaLinks from '../SocialMediaLinks';
 
 // Styled components
 const FooterLink = styled(Link)(({ theme }) => ({
@@ -100,56 +101,22 @@ const Footer = () => {
               Elevating your Jamaican experience with exclusive VIP entertainment and luxury adventures 
               designed for the discerning traveler seeking the extraordinary.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-              <IconButton 
-                href="https://facebook.com" 
-                target="_blank" 
-                rel="noopener"
-                sx={{ 
-                  color: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'secondary.main',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <Facebook />
-              </IconButton>
-              <IconButton 
-                href="https://instagram.com" 
-                target="_blank" 
-                rel="noopener"
-                sx={{ 
-                  color: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'secondary.main',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <Instagram />
-              </IconButton>
-              <IconButton 
-                href="https://twitter.com" 
-                target="_blank" 
-                rel="noopener"
-                sx={{ 
-                  color: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'secondary.main',
-                  },
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <Twitter />
-              </IconButton>
-            </Box>
+          </Grid>
+
+          {/* Social Media */}
+          <Grid xs={12} md={4}>
+            <FooterSection title="Follow Us">
+              <Box sx={{ mb: 3 }}>
+                <SocialMediaLinks 
+                  size="medium" 
+                  color="default" 
+                  spacing={2}
+                />
+              </Box>
+              <Typography variant="body2" sx={{ mt: 2, color: 'rgba(255,255,255,0.7)' }}>
+                Connect with us on social media for the latest updates and exclusive offers.
+              </Typography>
+            </FooterSection>
           </Grid>
 
           {/* Quick Links */}

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import AppLayout from './components/Layout/AppLayout';
@@ -7,6 +7,10 @@ import Tours from './pages/Tours';
 import Bookings from './pages/Bookings';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import CheckoutPage from './pages/CheckoutPage';
+import BookingConfirmation from './pages/BookingConfirmation';
+import TestPaymentFlow from './pages/TestPaymentFlow';
+import SocialFeedPage from './pages/SocialFeedPage';
 import AdminLogin from './pages/admin/Login';
 import AdminRoutes from './routes/adminRoutes';
 import { useAuth } from './hooks/useAuth';
@@ -16,6 +20,11 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -52,6 +61,7 @@ const App = () => (
 // Separate component to use hooks at the top level
 const AppContent = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div>Loading...</div>; // Or a loading spinner
@@ -65,7 +75,22 @@ const AppContent = () => {
         <Route path="/tours" element={<Tours />} />
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/about" element={<About />} />
+        <Route path="/social" element={<SocialFeedPage />} />
         <Route path="/contact" element={<Contact />} />
+        
+        {/* Payment routes */}
+        <Route 
+          path="/checkout" 
+          element={
+            <Elements stripe={stripePromise}>
+              <CheckoutPage />
+            </Elements>
+          } 
+        />
+        <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+        
+        {/* Test payment route */}
+        <Route path="/test-payment" element={<TestPaymentFlow />} />
         
         {/* Admin authentication */}
         <Route path="/admin/login" element={
