@@ -134,7 +134,7 @@ const Home: React.FC = () => {
               textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
             }}
           >
-            Experience luxury, adventure, and culture like never before with our exclusive tours and experiences.
+            Experience luxury, adventure, and culture like never before with our exclusive adventures and experiences.
           </Typography>
           <Button
             variant="contained"
@@ -152,7 +152,7 @@ const Home: React.FC = () => {
               mr: 2,
             }}
           >
-            Explore Tours
+            Explore Experience
           </Button>
           <Button
             variant="outlined"
@@ -241,7 +241,7 @@ const Home: React.FC = () => {
       {/* Featured Tours Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Typography variant="h3" component="h2" align="center" sx={{ mb: 6, fontWeight: 600 }}>
-          Featured Tours
+          Featured Experience
         </Typography>
         <Grid container spacing={4}>
           {featuredTours.map((tour) => (

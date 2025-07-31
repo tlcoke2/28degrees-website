@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import { promisify } from 'util';
 import User from '../models/User.model.js';
 
-// Protect routes
-export const protect = async (req, res, next) => {
+// Main JWT verification middleware
+const verifyJWT = async (req, res, next) => {
   try {
     let token;
 
@@ -57,8 +57,8 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// Grant access to specific roles
-export const authorize = (...roles) => {
+// Permission verification middleware
+const verifyPermission = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
@@ -71,7 +71,7 @@ export const authorize = (...roles) => {
 };
 
 // Only for rendered pages, no errors!
-export const isLoggedIn = async (req, res, next) => {
+const isLoggedIn = async (req, res, next) => {
   if (req.cookies.token) {
     try {
       // 1) Verify token
@@ -99,4 +99,22 @@ export const isLoggedIn = async (req, res, next) => {
     }
   }
   next();
+};
+
+// Export all middleware functions with both old and new names for compatibility
+export {
+  verifyJWT as protect,
+  verifyJWT,
+  verifyPermission as authorize,
+  verifyPermission,
+  isLoggedIn
+};
+
+// Default export for backward compatibility
+export default {
+  protect: verifyJWT,
+  verifyJWT,
+  authorize: verifyPermission,
+  verifyPermission,
+  isLoggedIn,
 };

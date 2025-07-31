@@ -65,6 +65,19 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Check if user changed password after the token was issued
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+  // False means NOT changed
+  return false;
+};
+
 // Generate and hash password token
 userSchema.methods.getResetPasswordToken = function () {
   // Generate token

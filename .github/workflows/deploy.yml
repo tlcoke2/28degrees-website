@@ -6,45 +6,90 @@ on:
       - main
   workflow_dispatch:
 
+# Environment variables available to all jobs and steps in this workflow
+env:
+  NODE_VERSION: '18'
+  VITE_API_URL: ${{ secrets.VITE_API_URL }}
+  VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+  VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+  VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+  VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+  VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+  VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+  VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  NODE_ENV: 'production'
+  CI: true
+
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+    environment: production
+    
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --production=false
 
-      - name: Build
+      - name: Create production env file
+        run: |
+          cat > .env.production << 'EOL'
+          VITE_API_URL=${{ env.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY=${{ env.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ env.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ env.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ env.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ env.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ env.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID=${{ env.VITE_FIREBASE_MEASUREMENT_ID }}
+          MONGODB_URI=${{ env.MONGODB_URI }}
+          JWT_SECRET=${{ env.JWT_SECRET }}
+          NODE_ENV=production
+          EOL
+
+      - name: Build application
         run: |
           npm run build
+          
           # Create docs directory if it doesn't exist
           mkdir -p docs
+          
           # Copy built files to docs directory
           cp -r dist/* docs/
+          
           # Copy CNAME file if it exists
           if [ -f public/CNAME ]; then
             cp public/CNAME docs/
           fi
+          
           # Create .nojekyll file to ensure all files are served
           touch docs/.nojekyll
+
+      - name: Setup Admin User
+        run: |
+          # Install production dependencies needed for admin setup
+          npm install firebase-admin mongodb dotenv --no-save
+          # Run the admin setup script
+          node scripts/ensureAdmin.js
 
       - name: Configure Git
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          
-      - name: Commit and push changes
+
+      - name: Deploy to GitHub Pages
         run: |
           git add docs/
           if ! git diff-index --quiet HEAD; then

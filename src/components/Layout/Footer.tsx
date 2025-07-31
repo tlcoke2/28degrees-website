@@ -149,23 +149,22 @@ const Footer = () => {
               <Box sx={{ display: 'flex', mb: 2 }}>
                 <LocationIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
                 <Typography variant="body1">
-                  123 Luxury Lane<br />
-                  Montego Bay, Jamaica
+                  South Coast, Jamaica
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', mb: 2 }}>
                 <EmailIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <FooterLink href="mailto:info@28degreeswest.com">
-                  info@28degreeswest.com
+                <FooterLink href="mailto:nikain@hotmail.com">
+                  nikain@hotmail.com
                 </FooterLink>
               </Box>
               <Box sx={{ display: 'flex', mb: 2 }}>
                 <PhoneIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <FooterLink href="tel:+18765551234">+1 (876) 555-1234</FooterLink>
+                <FooterLink href="tel:+447398076328">+44 7398076328</FooterLink>
               </Box>
               <Box sx={{ display: 'flex' }}>
                 <AccessTimeIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <Typography variant="body1">Mon - Fri: 9am - 6pm EST</Typography>
+                <Typography variant="body1">Mon - Sun: 9am - 6pm GMT</Typography>
               </Box>
             </FooterSection>
           </Grid>

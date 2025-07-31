@@ -6,9 +6,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import routes
+// Import routes and utilities
 import routes from './src/routes/index.js';
 import { globalErrorHandler, notFound } from './src/middleware/error.middleware.js';
+import { logRoutes } from './src/utils/routeLogger.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,11 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // API routes
 app.use('/api/v1', routes);
+
+// Log all registered routes
+if (process.env.NODE_ENV === 'development') {
+  logRoutes(app);
+}
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

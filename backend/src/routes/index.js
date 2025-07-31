@@ -4,15 +4,19 @@ import userRoutes from './user.routes.js';
 import tourRoutes from './tour.routes.js';
 import reviewRoutes from './review.routes.js';
 import bookingRoutes from './booking.routes.js';
+import paymentRoutes from './payment.routes.js';
+import stripeRoutes from './stripe.routes.js';
 
 const router = Router();
 
 // API routes
-router.use('/api/v1/auth', authRoutes);
-router.use('/api/v1/users', userRoutes);
-router.use('/api/v1/tours', tourRoutes);
-router.use('/api/v1/reviews', reviewRoutes);
-router.use('/api/v1/bookings', bookingRoutes);
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/tours', tourRoutes);
+router.use('/reviews', reviewRoutes);
+router.use('/bookings', bookingRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/stripe', stripeRoutes);
 
 // Health check route
 router.get('/health', (req, res) => {

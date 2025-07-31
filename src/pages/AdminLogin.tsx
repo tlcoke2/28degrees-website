@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Paper, 
@@ -7,10 +7,15 @@ import {
   TextField, 
   Button, 
   Alert,
-  CircularProgress
+  CircularProgress,
+  Divider,
+  Collapse,
+  IconButton
 } from '@mui/material';
+import { ExpandMore, ExpandLess } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../firebase';
 
 // Extend ImportMetaEnv to include our environment variables
 interface CustomImportMetaEnv {
@@ -35,7 +40,28 @@ const AdminLogin: React.FC = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [showConfig, setShowConfig] = useState(false);
+  const [firebaseConfig, setFirebaseConfig] = useState<Record<string, any>>({});
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Log Firebase config for debugging
+    console.log('Firebase Config:', {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? '***' + import.meta.env.VITE_FIREBASE_API_KEY.slice(-4) : 'Not set',
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'Not set',
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Not set',
+      appId: import.meta.env.VITE_FIREBASE_APP_ID ? '***' + import.meta.env.VITE_FIREBASE_APP_ID.slice(-4) : 'Not set'
+    });
+    
+    // Set config for display (obfuscate sensitive values)
+    setFirebaseConfig({
+      'API Key': import.meta.env.VITE_FIREBASE_API_KEY ? '***' + import.meta.env.VITE_FIREBASE_API_KEY.slice(-4) : 'Not set',
+      'Auth Domain': import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'Not set',
+      'Project ID': import.meta.env.VITE_FIREBASE_PROJECT_ID || 'Not set',
+      'App ID': import.meta.env.VITE_FIREBASE_APP_ID ? '***' + import.meta.env.VITE_FIREBASE_APP_ID.slice(-4) : 'Not set',
+      'Current User': auth.currentUser ? 'Logged In (' + (auth.currentUser.email || 'no email') + ')' : 'Not logged in'
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -68,58 +94,86 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8, mb: 4 }}>
-        <Paper sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
-            Admin Login
-          </Typography>
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center">
+          Admin Login
+        </Typography>
+        
+        {/* Firebase Config Debug Section */}
+        <Box sx={{ mt: 3, mb: 3, p: 2, border: '1px dashed #ccc', borderRadius: 1 }}>
+          <Box 
+            onClick={() => setShowConfig(!showConfig)}
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              color: 'primary.main',
+              '&:hover': { textDecoration: 'underline' }
+            }}
+          >
+            <Typography variant="subtitle2">
+              {showConfig ? 'Hide Firebase Config' : 'Show Firebase Configuration'}
+            </Typography>
+            {showConfig ? <ExpandLess /> : <ExpandMore />}
+          </Box>
           
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-              
-              <TextField
-                fullWidth
-                type="password"
-                label="Password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-              
-              <Button
-                variant="contained"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : null}
-                color="primary"
-                fullWidth
-                size="large"
-                sx={{ mt: 2 }}
-              >
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Button>
+          <Collapse in={showConfig}>
+            <Box sx={{ mt: 2, fontFamily: 'monospace', fontSize: '0.8rem' }}>
+              {Object.entries(firebaseConfig).map(([key, value]) => (
+                <div key={key}>
+                  <strong>{key}:</strong> {String(value)}
+                </div>
+              ))}
             </Box>
-          </form>
-        </Paper>
-      </Box>
+          </Collapse>
+        </Box>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              margin="normal"
+            />
+            
+            <TextField
+              fullWidth
+              label="Password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              margin="normal"
+            />
+            
+            <Button
+              variant="contained"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : null}
+              color="primary"
+              fullWidth
+              size="large"
+              type="submit"
+              sx={{ mt: 2 }}
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </Box>
+        </form>
+      </Paper>
     </Container>
   );
 };

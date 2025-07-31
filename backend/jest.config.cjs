@@ -2,6 +2,7 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
+  testPathIgnorePatterns: ['/node_modules/'],
   
   // Module name mapper for ESM imports
   moduleNameMapper: {
@@ -13,7 +14,7 @@ module.exports = {
     '^.+\\.js$': 'babel-jest',
   },
   
-  // Ignore node_modules except for specific packages if needed
+  // Ignore node_modules for transforms
   transformIgnorePatterns: [
     'node_modules/(?!(.*)/)'
   ],
@@ -25,10 +26,10 @@ module.exports = {
   forceExit: true,
   
   // Module file extensions
-  moduleFileExtensions: ['js', 'json', 'jsx', 'node'],
+  moduleFileExtensions: ['js', 'json', 'jsx', 'node', 'mjs'],
   
   // Setup file for test environment
-  setupFilesAfterEnv: ['./tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   
   // Global configuration
   globals: {
@@ -36,4 +37,14 @@ module.exports = {
       useESM: true,
     },
   },
+  
+  // Coverage configuration
+  collectCoverage: true,
+  collectCoverageFrom: [
+    'src/**/*.js',
+    '!**/node_modules/**',
+    '!**/coverage/**',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov'],
 };

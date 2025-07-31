@@ -5,9 +5,11 @@ import User from '../models/User.model.js';
 import AppError from '../utils/AppError.js';
 import sendEmail from '../utils/email.js';
 
-const signToken = (id) => {
+export const signToken = (id) => {
+  // Convert JWT_EXPIRE to a number of seconds (90 days = 90 * 24 * 60 * 60 = 7776000 seconds)
+  const expiresIn = parseInt(process.env.JWT_EXPIRE || '7776000', 10);
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn: expiresIn
   });
 };
 
