@@ -14,6 +14,7 @@ import SocialFeedPage from './pages/SocialFeedPage';
 import AdminLogin from './pages/admin/Login';
 import AdminRoutes from './routes/adminRoutes';
 import { useAuth } from './hooks/useAuth';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import theme from './theme/theme';
 import { SnackbarProvider } from 'notistack';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -92,12 +93,26 @@ const AppContent = () => {
         {/* Test payment route */}
         <Route path="/test-payment" element={<TestPaymentFlow />} />
         
-        {/* Admin authentication */}
-        <Route path="/admin/login" element={
-          user ? <Navigate to="/admin/dashboard" replace /> : <AdminLogin />
-        } />
-        
-        {/* Admin protected routes */}
+        {/* Admin routes */}
+        <Route path="/admin">
+          {/* Admin login */}
+          <Route 
+            path="login" 
+            element={
+              user ? <Navigate to="/admin/dashboard" replace /> : <AdminLogin />
+            } 
+          />
+          
+          {/* Protected admin routes */}
+          <Route
+            path="*"
+            element={
+              <ProtectedRoute>
+                <AdminRoutes />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
         <Route path="/admin/*" element={
           user ? <AdminRoutes /> : <Navigate to="/admin/login" state={{ from: location }} replace />
         } />
