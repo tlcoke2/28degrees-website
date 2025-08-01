@@ -44,12 +44,15 @@ if (process.env.NODE_ENV === 'development') {
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   // Set static folder
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  const clientBuildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(clientBuildPath));
 
-  // Handle React routing, return all requests to React app
+  // Serve the React app for any other routes (SPA behavior)
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
+  
+  console.log('Serving static files from:', clientBuildPath);
 }
 
 // 404 handler
