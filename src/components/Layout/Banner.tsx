@@ -32,11 +32,9 @@ const Banner = () => {
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box sx={{ width: '100%', overflow: 'hidden' }}>
       {/* Sliding Banner at the top */}
-      <Box sx={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #e0e0e0' }}>
-        <SlidingBanner />
-      </Box>
+      <SlidingBanner />
       
       {/* Hero Section */}
       <Box

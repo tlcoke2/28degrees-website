@@ -4,18 +4,22 @@ import { Box, keyframes, styled } from '@mui/material';
 const logo = '/assets/logo.png';
 
 const slide = keyframes`
-  0% { transform: translateX(100%); }
+  0% { transform: translateX(100vw); }
   100% { transform: translateX(-100%); }
 `;
 
 const AnimatedBanner = styled(Box)({
-  width: '100%',
+  width: '100vw',
   overflow: 'hidden',
   whiteSpace: 'nowrap',
   backgroundColor: '#f5f5f5',
   padding: '10px 0',
   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
   position: 'relative',
+  left: '50%',
+  right: '50%',
+  marginLeft: '-50vw',
+  marginRight: '-50vw',
   '&:hover': {
     '& .slide': {
       animationPlayState: 'paused',
@@ -25,16 +29,18 @@ const AnimatedBanner = styled(Box)({
 
 const SlideContent = styled(Box)({
   display: 'inline-block',
+  whiteSpace: 'nowrap',
   paddingLeft: '100%',
-  animation: `${slide} 30s linear infinite`,
+  animation: `${slide} 40s linear infinite`,
   '&:hover': {
     animationPlayState: 'paused',
   },
 });
 
 const Logo = styled('img')({
-  height: '40px',
-  margin: '0 20px',
+  height: '50px',
+  width: 'auto',
+  margin: '0 40px 0 0',
   verticalAlign: 'middle',
   transition: 'transform 0.3s ease',
   '&:hover': {
