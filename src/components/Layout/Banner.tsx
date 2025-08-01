@@ -2,6 +2,7 @@ import { Box, Container, Typography, Button, useTheme, useMediaQuery } from '@mu
 import { Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GlobalStyles } from '@mui/material';
+import SlidingBanner from '../SlidingBanner';
 
 const Banner = () => {
   const theme = useTheme();
@@ -31,22 +32,29 @@ const Banner = () => {
   };
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '100%',
-        height: isMobile ? '80vh' : '90vh',
-        minHeight: '600px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        background: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url('/images/hero-bg.jpg') center/cover no-repeat`,
-        color: 'white',
-        textAlign: 'center',
-        padding: theme.spacing(3),
-      }}
-    >
+    <Box sx={{ width: '100%' }}>
+      {/* Sliding Banner at the top */}
+      <Box sx={{ backgroundColor: '#f5f5f5', borderBottom: '1px solid #e0e0e0' }}>
+        <SlidingBanner />
+      </Box>
+      
+      {/* Hero Section */}
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          height: isMobile ? '80vh' : '90vh',
+          minHeight: '600px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          background: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)), url('/images/hero-bg.jpg') center/cover no-repeat`,
+          color: 'white',
+          textAlign: 'center',
+          padding: theme.spacing(3),
+        }}
+      >
       <Container maxWidth="lg">
         <motion.div
           initial="hidden"
@@ -203,6 +211,7 @@ const Banner = () => {
           },
         }}
       />
+    </Box>
     </Box>
   );
 };
