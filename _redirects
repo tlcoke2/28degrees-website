@@ -1,0 +1,5 @@
+# Single Page Apps for GitHub Pages
+# https://github.com/rafgraph/spa-github-pages
+
+# Redirect all requests to index.html with a 200 status code
+/*    /index.html   200
