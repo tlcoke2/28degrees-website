@@ -1,9 +1,17 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-// Make sure to call loadStripe outside of a component's render to avoid
-// recreating the Stripe object on every render.
-export const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY || '');
+// Single source of truth for the Stripe instance
+// Use Vite's import.meta.env for environment variables
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 
+if (!stripePublishableKey) {
+  console.warn('Stripe publishable key is not set. Please check your environment variables.');
+}
+
+// Initialize Stripe once and export the promise
+export const stripePromise = loadStripe(stripePublishableKey);
+
+// Stripe price IDs for different tours
 export const STRIPE_PRICE_IDS = {
   SOUTH_COAST_ADVENTURE: 'price_1234567890',
   WATERFALL_EXPERIENCE: 'price_0987654321',

@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Button, Container, TextField, Typography, Paper } from '@mui/material';
 import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { PaymentForm } from '../components/Payment/PaymentForm';
-
-// Initialize Stripe with test publishable key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+import { stripePromise } from '../config/stripe';
 
 const TestPaymentFlow: React.FC = () => {
   const [amount, setAmount] = useState<number>(100); // Default to $1.00

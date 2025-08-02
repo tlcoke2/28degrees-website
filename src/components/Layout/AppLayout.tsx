@@ -5,7 +5,6 @@ import {
   AppBar, 
   Toolbar, 
   Button, 
-  IconButton, 
   Drawer, 
   List, 
   ListItem, 
@@ -15,11 +14,12 @@ import {
   useMediaQuery,
   Typography
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Banner from './Banner';
 import Footer from './Footer';
+import UserMenu from './UserMenu';
+import AIAssistant from '../AIAssistant';
 
 // Smooth scroll to top component
 function ScrollTop({ children }: { children: React.ReactElement }) {
@@ -89,6 +89,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center', py: 2 }}>
       <List>
+        <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2, px: 2 }}>
+          <UserMenu />
+        </Box>
         {navItems.map((item) => (
           <ListItem 
             key={item.name} 
@@ -223,17 +226,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 Book Now
               </Button>
 
-              {isMobile && (
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={handleDrawerToggle}
-                  sx={{ ml: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
+              <UserMenu />
             </Box>
           </Toolbar>
         </Container>
@@ -306,6 +299,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           ↑
         </Button>
       </ScrollTop>
+      
+      {/* AI Assistant */}
+      <AIAssistant />
     </Box>
   );
 };

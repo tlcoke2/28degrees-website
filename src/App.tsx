@@ -1,6 +1,5 @@
+import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { AuthProvider } from './contexts/AuthContext';
 import AppLayout from './components/Layout/AppLayout';
 import Home from './pages/Home';
 import Tours from './pages/Tours';
@@ -12,55 +11,48 @@ import BookingConfirmation from './pages/BookingConfirmation';
 import TestPaymentFlow from './pages/TestPaymentFlow';
 import SocialFeedPage from './pages/SocialFeedPage';
 import AdminLogin from './pages/admin/Login';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Dashboard from './pages/Dashboard';
+import BookEvent from './pages/BookEvent';
 import AdminRoutes from './routes/adminRoutes';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './contexts/UserContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import theme from './theme/theme';
-import { SnackbarProvider } from 'notistack';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useCookieConsent } from './contexts/CookieConsentContext';
+import CookieConsent from './components/CookieConsent';
 import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
-
-// Create a client for React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
-
+import { stripePromise } from './config/stripe';
 // Main App component with routing
-const App = () => (
-  <ThemeProvider theme={theme}>
-    <CssBaseline />
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <QueryClientProvider client={queryClient}>
-        <SnackbarProvider 
-          maxSnack={3}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          autoHideDuration={5000}
-        >
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-          <ReactQueryDevtools initialIsOpen={false} />
-        </SnackbarProvider>
-      </QueryClientProvider>
-    </LocalizationProvider>
-  </ThemeProvider>
-);
+const App: React.FC = () => {
+  return (
+    <Elements stripe={stripePromise}>
+      <CookieConsentWrapper />
+      <AppContent />
+    </Elements>
+  );
+};
+
+// Wrapper component for CookieConsent to use the hook
+const CookieConsentWrapper: React.FC = () => {
+  const { showConsent, updateCookieSettings, rejectAllCookies } = useCookieConsent();
+  
+  return (
+    <CookieConsent 
+      open={showConsent}
+      onClose={() => updateCookieSettings({
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        preferences: false,
+      })}
+      onAccept={updateCookieSettings}
+      onReject={rejectAllCookies}
+    />
+  );
+};
 
 // Separate component to use hooks at the top level
-const AppContent = () => {
+const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -78,20 +70,46 @@ const AppContent = () => {
         <Route path="/about" element={<About />} />
         <Route path="/social" element={<SocialFeedPage />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Protected user routes */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/book-event/:eventId" element={
+          <ProtectedRoute>
+            <BookEvent />
+          </ProtectedRoute>
+        } />
         
         {/* Payment routes */}
         <Route 
           path="/checkout" 
           element={
-            <Elements stripe={stripePromise}>
-              <CheckoutPage />
-            </Elements>
+            <ProtectedRoute>
+              <Elements stripe={stripePromise}>
+                <CheckoutPage />
+              </Elements>
+            </ProtectedRoute>
           } 
         />
-        <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+        
+        <Route path="/booking-confirmation" element={
+          <ProtectedRoute>
+            <BookingConfirmation />
+          </ProtectedRoute>
+        } />
         
         {/* Test payment route */}
-        <Route path="/test-payment" element={<TestPaymentFlow />} />
+        <Route path="/test-payment" element={
+          <ProtectedRoute>
+            <TestPaymentFlow />
+          </ProtectedRoute>
+        } />
         
         {/* Admin routes */}
         <Route path="/admin">

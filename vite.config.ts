@@ -13,7 +13,12 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       react(),
-      fixAssetPaths()
+      fixAssetPaths({
+        // Fix paths for images and other assets
+        patterns: [
+          { from: '**/*.{jpg,png,svg,ico}', to: 'assets/[name].[hash][extname]' },
+        ],
+      })
     ],
     base: base,
     
@@ -24,9 +29,29 @@ export default defineConfig(({ command, mode }) => {
       open: true,
       host: '0.0.0.0', // Explicitly listen on all network interfaces
       cors: true,
+      headers: {
+        'Content-Security-Policy': `
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com;
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          img-src 'self' data: https:;
+          font-src 'self' https://fonts.gstatic.com;
+          connect-src 'self' https://api.stripe.com https://*.stripe.com;
+          frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+          frame-ancestors 'self';
+          form-action 'self';
+          base-uri 'self';
+        `.replace(/\s+/g, ' ').trim()
+      }
     },
     
     // Build configuration
+    resolve: {
+      alias: {
+        // Fix for date-fns imports
+        'date-fns/_lib/format/longFormatters': 'date-fns/esm/_lib/format/longFormatters/index.js'
+      }
+    },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
