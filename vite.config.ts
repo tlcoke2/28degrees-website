@@ -6,8 +6,8 @@ import fixAssetPaths from './vite-fix-asset-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // Use root path for custom domain, or repository name for GitHub Pages
-  const base = mode === 'production' ? '/28degrees-website/' : '/';
+  // Use root path for custom domain
+  const base = mode === 'production' ? '/' : '/';
   const isProduction = mode === 'production';
   
   return {
