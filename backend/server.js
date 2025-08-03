@@ -15,7 +15,7 @@ import compression from 'compression';
 import { createServer } from 'http';
 import { errorHandler } from './src/middleware/error.middleware.js';
 import { logger } from './src/utils/logger.js';
-import { initSentry } from './src/utils/sentry.js';
+// Sentry will be imported dynamically if SENTRY_DSN is set
 import apiRoutes from './src/routes/api.routes.js';
 
 // Enhanced startup logging
