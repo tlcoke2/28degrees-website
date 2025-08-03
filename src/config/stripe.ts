@@ -8,14 +8,14 @@ if (!stripePublishableKey) {
   console.warn('Stripe publishable key is not set. Please check your environment variables.');
 }
 
-// Initialize Stripe with advanced fraud detection and compatibility settings
+// Initialize Stripe with stable API features
 export const stripePromise = loadStripe(stripePublishableKey, {
-  // Ensure we're using the latest API version
+  // Use a stable API version
   apiVersion: '2023-10-16',
-  // Enable advanced fraud detection
-  betas: ['payment_element_beta_3', 'elements_enable_deferred_intent_beta_1'],
   // Set Stripe.js locale to auto-detect user's language
-  locale: 'auto'
+  locale: 'auto',
+  // Use stable features only
+  betas: []
 });
 
 // Stripe price IDs for different tours

@@ -12,6 +12,15 @@ export default defineConfig(({ command, mode }) => {
   const base = '/';
   const isProduction = mode === 'production';
   
+  // Log environment variables for debugging (only in build mode)
+  if (command === 'build') {
+    console.log('Environment variables during build:');
+    console.log('VITE_API_URL:', process.env.VITE_API_URL ? '***' : 'Not set');
+    console.log('VITE_FIREBASE_API_KEY:', process.env.VITE_FIREBASE_API_KEY ? '***' : 'Not set');
+    console.log('VITE_FIREBASE_AUTH_DOMAIN:', process.env.VITE_FIREBASE_AUTH_DOMAIN || 'Not set');
+    console.log('VITE_STRIPE_PUBLISHABLE_KEY:', process.env.VITE_STRIPE_PUBLISHABLE_KEY ? '***' : 'Not set');
+  }
+  
   return {
     plugins: [
       react(),
