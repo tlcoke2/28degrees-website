@@ -64,11 +64,28 @@ app.use(globalErrorHandler);
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
+    console.log('🔍 Attempting to connect to MongoDB...');
+    console.log(`🔗 MongoDB URI: ${process.env.MONGODB_URI ? '***' + process.env.MONGODB_URI.slice(-20) : 'Not set'}`);
+    
+    const dbOptions = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      socketTimeoutMS: 45000, // 45 seconds timeout
+      connectTimeoutMS: 10000, // 10 seconds timeout
+    };
+    
+    await mongoose.connect(process.env.MONGODB_URI, dbOptions);
+    
+    // Verify the connection
+    const db = mongoose.connection;
+    db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+    db.once('open', () => {
+      console.log('✅ Connected to MongoDB successfully');
+      console.log(`   - Host: ${db.host}`);
+      console.log(`   - Port: ${db.port}`);
+      console.log(`   - Database: ${db.name}`);
     });
-    console.log('✅ Connected to MongoDB');
     
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
