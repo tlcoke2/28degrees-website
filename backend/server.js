@@ -70,9 +70,19 @@ const startServer = async () => {
     });
     console.log('✅ Connected to MongoDB');
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌐 http://localhost:${PORT}`);
+      console.log(`🌐 http://0.0.0.0:${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔗 MongoDB connected: ${mongoose.connection.host}`);
+    });
+    
+    // Store server instance for graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received. Shutting down gracefully');
+      server.close(() => {
+        console.log('Process terminated');
+      });
     });
   } catch (error) {
     console.error('❌ Failed to connect to MongoDB', error);
