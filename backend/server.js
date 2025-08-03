@@ -1,65 +1,220 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
-import morgan from 'morgan';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import path from 'path';
+import Stripe from 'stripe';
 import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss-clean';
+import hpp from 'hpp';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { WebSocketService } from './src/services/websocket.service.js';
+import { errorHandler } from './src/middleware/error.middleware.js';
+import { logger } from './src/utils/logger.js';
+import { initSentry } from './src/utils/sentry.js';
+import apiRoutes from './src/routes/api.routes.js';
 
-// Import routes and utilities
-import routes from './src/routes/index.js';
-import { globalErrorHandler, notFound } from './src/middleware/error.middleware.js';
-import { logRoutes } from './src/utils/routeLogger.js';
+// Enhanced startup logging
+console.log('🚀 Starting 28 Degrees Backend Server...');
+console.log(`📅 ${new Date().toISOString()}`);
+console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🔧 Node Version: ${process.version}`);
+console.log(`📁 Current Directory: ${process.cwd()}`);
 
 // Load environment variables
+console.log('🔍 Loading environment variables...');
 dotenv.config();
 
+// Log important environment variables (without sensitive values)
+const logEnvVars = ['NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'STRIPE_SECRET_KEY'];
+console.log('⚙️  Environment Variables:');
+logEnvVars.forEach(varName => {
+  const value = process.env[varName];
+  console.log(`   ${varName}: ${value ? '***' + value.slice(-4) : 'Not set'}`);
+});
+
+// Initialize Sentry
+try {
+  console.log('🔧 Initializing Sentry...');
+  initSentry();
+  console.log('✅ Sentry initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Sentry:', error);
+}
+
 // Create Express app
+console.log('🚀 Creating Express app...');
 const app = express();
-const PORT = process.env.PORT || 5000;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const httpServer = createServer(app);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Logging in development
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
-
-// Serve static files
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
-// API routes
-app.use('/api/v1', routes);
-
-// Log all registered routes
-if (process.env.NODE_ENV === 'development') {
-  logRoutes(app);
-}
-
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  const clientBuildPath = path.join(__dirname, '../client/build');
-  app.use(express.static(clientBuildPath));
-
-  // Serve the React app for any other routes (SPA behavior)
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(clientBuildPath, 'index.html'));
-  });
+// Initialize Socket.IO
+console.log('🔌 Initializing Socket.IO...');
+let io;
+try {
+  const ioConfig = {
+    cors: {
+      origin: process.env.NODE_ENV === 'production' 
+        ? ['https://28degreeswest.com', 'https://www.28degreeswest.com']
+        : '*',
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
+  };
   
-  console.log('Serving static files from:', clientBuildPath);
+  io = new Server(httpServer, ioConfig);
+  console.log('✅ Socket.IO initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Socket.IO:', error);
+  process.exit(1);
 }
 
-// 404 handler
-app.use(notFound);
+// Initialize WebSocket service
+try {
+  console.log('🔌 Initializing WebSocket service...');
+  new WebSocketService(io);
+  console.log('✅ WebSocket service initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize WebSocket service:', error);
+}
 
-// Global error handler
-app.use(globalErrorHandler);
+// Set security HTTP headers
+console.log('🔒 Setting security headers...');
+try {
+  app.use(helmet());
+  console.log('✅ Security headers set');
+} catch (error) {
+  console.error('❌ Failed to set security headers:', error);
+}
+
+// Enable CORS
+console.log('🌐 Configuring CORS...');
+try {
+  const corsOptions = {
+    origin: process.env.NODE_ENV === 'production'
+      ? ['https://28degreeswest.com', 'https://www.28degreeswest.com']
+      : '*',
+    credentials: true
+  };
+  app.use(cors(corsOptions));
+  console.log('✅ CORS configured');
+} catch (error) {
+  console.error('❌ Failed to configure CORS:', error);
+}
+
+// Rate limiting
+console.log('⏱️  Configuring rate limiting...');
+try {
+  const limiter = rateLimit({
+    max: 100,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    message: 'Too many requests from this IP, please try again in an hour!',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api', limiter);
+  console.log('✅ Rate limiting configured');
+} catch (error) {
+  console.error('❌ Failed to configure rate limiting:', error);
+}
+
+// Body parser
+console.log('📦 Configuring body parser...');
+try {
+  app.use(express.json({ limit: '10kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+  app.use(cookieParser());
+  console.log('✅ Body parser configured');
+} catch (error) {
+  console.error('❌ Failed to configure body parser:', error);
+}
+
+// Security middleware
+console.log('🛡️  Configuring security middleware...');
+try {
+  // Data sanitization against NoSQL query injection
+  app.use(mongoSanitize());
+  
+  // Data sanitization against XSS
+  app.use(xss());
+  
+  // Prevent parameter pollution
+  app.use(hpp({
+    whitelist: [
+      'duration', 'ratingsQuantity', 'ratingsAverage', 'maxGroupSize', 'difficulty', 'price'
+    ]
+  }));
+  
+  console.log('✅ Security middleware configured');
+} catch (error) {
+  console.error('❌ Failed to configure security middleware:', error);
+}
+
+// Compression
+console.log('🗜️  Configuring compression...');
+try {
+  app.use(compression());
+  console.log('✅ Compression configured');
+} catch (error) {
+  console.error('❌ Failed to configure compression:', error);
+}
+
+// Routes
+console.log('🛣️  Configuring routes...');
+try {
+  app.use('/api/v1', apiRoutes);
+  console.log('✅ Routes configured');
+} catch (error) {
+  console.error('❌ Failed to configure routes:', error);
+}
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  console.log('🏗️  Configuring production static file serving...');
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const staticPath = join(__dirname, '../client/dist');
+    
+    console.log(`📂 Static files path: ${staticPath}`);
+    
+    // Serve static files
+    app.use(express.static(staticPath));
+    
+    // Handle SPA
+    app.get('*', (req, res) => {
+      console.log(`📤 Serving SPA for: ${req.originalUrl}`);
+      res.sendFile(join(staticPath, 'index.html'));
+    });
+    
+    console.log('✅ Production static file serving configured');
+  } catch (error) {
+    console.error('❌ Failed to configure static file serving:', error);
+  }
+}
+
+// Handle 404
+app.all('*', (req, res, next) => {
+  console.warn(`⚠️  404 - ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    status: 'fail',
+    message: `Can't find ${req.originalUrl} on this server!`
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('🔥 Error:', err);
+  errorHandler(err, req, res, next);
+});
+
+// Get port from environment and store in Express
+const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB and start server
 const startServer = async () => {
