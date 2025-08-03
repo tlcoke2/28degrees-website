@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { 
   Box, 
@@ -15,7 +15,8 @@ import {
 import { 
   signInWithEmailAndPassword, 
   sendPasswordResetEmail, 
-  updatePassword as firebaseUpdatePassword
+  updatePassword as firebaseUpdatePassword,
+  AuthError
 } from 'firebase/auth';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -23,15 +24,17 @@ import { isAdminEmail } from '../../utils/adminAuth';
 import { useAdmin } from '../../contexts/AdminContext';
 
 const AdminLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [isFirstLogin, setIsFirstLogin] = useState(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
+  const [isFirstLogin, setIsFirstLogin] = useState<boolean>(false);
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,39 +53,58 @@ const AdminLogin: React.FC = () => {
     }
   }, [admin, loading, requiresPasswordChange, navigate, location]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     
     try {
-      // Validate email is an admin email
-      if (!isAdminEmail(email)) {
-        setError('Access denied. Please use an admin email.');
-        setIsLoading(false);
-        return;
+      if (!email || !password) {
+        throw new Error('Please enter both email and password');
       }
       
-      await signInWithEmailAndPassword(auth, email, password);
+      if (!isAdminEmail(email)) {
+        throw new Error('Access denied. Admin privileges required.');
+      }
+      
+      // Sign in with email and password
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
       // Update last login timestamp
-      if (auth.currentUser) {
-        await updateDoc(doc(db, 'admins', auth.currentUser.uid), {
+      if (user) {
+        await updateDoc(doc(db, 'admins', user.uid), {
           lastLogin: serverTimestamp()
         });
       }
       
-      setMessage('Login successful! Redirecting...');
-    } catch (err: any) {
-      console.error('Login error:', err);
+      const successMessage = 'Login successful! Redirecting...';
+      setMessage(successMessage);
+      setSnackbarMessage(successMessage);
+      setSnackbarOpen(true);
       
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Invalid email or password.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many failed login attempts. Please try again later or reset your password.');
-      } else {
-        setError('Failed to sign in. Please try again.');
+      // Redirect to admin dashboard after successful login
+      setTimeout(() => {
+        navigate('/admin/dashboard', { replace: true });
+      }, 1500);
+      
+    } catch (error: unknown) {
+      const authError = error as AuthError;
+      let errorMessage = 'Failed to log in';
+      
+      if (authError.code === 'auth/invalid-email' || 
+          authError.code === 'auth/user-not-found' ||
+          authError.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password';
+      } else if (authError.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (authError.message) {
+        errorMessage = authError.message;
       }
+      
+      setError(errorMessage);
+      console.error('Admin login error:', authError);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -299,22 +321,32 @@ const AdminLogin: React.FC = () => {
       
       <Box sx={{ mt: 2, textAlign: 'center' }}>
         <Typography variant="caption" color="text.secondary">
-          Secure Admin Portal • {new Date().getFullYear()} © 28 Degrees West
+          Secure Admin Portal • {new Date().getFullYear()} 28 Degrees West
         </Typography>
       </Box>
       
-      <Snackbar 
-        open={!!message} 
-        autoHideDuration={6000} 
-        onClose={() => setMessage('')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert onClose={() => setMessage('')} severity="success" sx={{ width: '100%' }}>
-          {message}
+        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+      
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{ width: '100%' }}>
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </Container>
   );
 };
-
 export default AdminLogin;

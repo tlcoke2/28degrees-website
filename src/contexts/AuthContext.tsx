@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut, Auth } from 'firebase/auth';
 import { auth } from '../firebase';
 
 interface AuthContextType {
@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Login function
   const login = useCallback(async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase auth is not initialized');
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
@@ -33,18 +34,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout function
   const logout = useCallback(async () => {
+    if (!auth) throw new Error('Firebase auth is not initialized');
     try {
       setLoading(true);
       await firebaseSignOut(auth);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth]);
 
   useEffect(() => {
+    if (!auth) {
+      console.error('Firebase auth is not initialized');
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getAuth, onAuthStateChanged, updatePassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, updatePassword, signOut as firebaseSignOut, User } from 'firebase/auth';
+import { doc, updateDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import { db } from '../firebase';
 import { AdminUser, getCurrentAdmin } from '../utils/adminAuth';
 
@@ -78,15 +78,16 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => unsubscribe();
   }, []);
 
-  // Function to update admin password
-  const updateAdminPassword = async (newPassword: string) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-    
-    if (!user) {
-      throw new Error('No user is currently signed in');
-    }
+  // Ensure db is properly typed
+  const firestoreDb = db as Firestore;
 
+  // Function to update admin password
+  const updateAdminPassword = async (newPassword: string): Promise<boolean> => {
+    const auth = getAuth();
+    if (!auth) {
+      console.error('Firebase auth is not initialized');
+      return false;
+    }
     try {
       // Update password in Firebase Auth
       await updatePassword(user, newPassword);

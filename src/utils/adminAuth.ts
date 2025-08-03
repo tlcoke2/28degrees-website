@@ -1,5 +1,23 @@
-import { getAuth, User, onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  getAuth, 
+  User, 
+  onAuthStateChanged, 
+  signOut as firebaseSignOut, 
+  updatePassword as firebaseUpdatePassword,
+  createUserWithEmailAndPassword,
+  Auth,
+  UserCredential
+} from 'firebase/auth';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  serverTimestamp, 
+  Firestore,
+  DocumentReference,
+  DocumentData
+} from 'firebase/firestore';
 import { db } from '../firebase';
 
 export interface AdminUser extends User {
@@ -16,95 +34,130 @@ export const isAdminEmail = (email: string): boolean => {
 
 export const getCurrentAdmin = (): Promise<AdminUser | null> => {
   return new Promise((resolve) => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const auth: Auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
       if (!user) {
         resolve(null);
         return;
       }
 
-      // Check if user is in the admin list
-      if (!isAdminEmail(user.email || '')) {
-        await signOut(auth);
+      try {
+        // Check if user is in the admin list
+        if (!user || !user.email || !isAdminEmail(user.email)) {
+          await firebaseSignOut(auth);
+          resolve(null);
+          return;
+        }
+
+        // Get additional admin data from Firestore
+        const firestoreDb: Firestore = db as Firestore;
+        const userDocRef: DocumentReference<DocumentData> = doc(firestoreDb, 'admins', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (!userDoc.exists()) {
+          // Create admin document if it doesn't exist
+          await setDoc(userDocRef, {
+            email: user.email,
+            isAdmin: true,
+            requiresPasswordChange: true,
+            lastPasswordChange: serverTimestamp(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        const adminData = userDoc.data();
+
+        resolve({
+          ...user,
+          isAdmin: true,
+          requiresPasswordChange: adminData?.requiresPasswordChange || false,
+          lastPasswordChange: adminData?.lastPasswordChange?.toDate()
+        } as AdminUser);
+      } catch (error) {
+        console.error('Error in getCurrentAdmin:', error);
         resolve(null);
-        return;
       }
 
-      // Get additional admin data from Firestore
-      const userDoc = await getDoc(doc(db, 'admins', user.uid));
-      const adminUser = {
-        ...user,
-        isAdmin: true,
-        requiresPasswordChange: userDoc.data()?.requiresPasswordChange || false,
-        lastPasswordChange: userDoc.data()?.lastPasswordChange?.toDate()
-      } as AdminUser;
-
-      resolve(adminUser);
       unsubscribe();
     });
   });
 };
 
 export const createAdminUser = async (email: string, password: string) => {
-  const auth = getAuth();
-  const { createUserWithEmailAndPassword } = await import('firebase/auth');
-  
   try {
-    // Create user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
 
-    // Create admin document in Firestore
-    await setDoc(doc(db, 'admins', user.uid), {
+    if (!isAdminEmail(email)) {
+      throw new Error('Only admin emails are allowed');
+    }
+
+    const auth: Auth = getAuth();
+    const firestoreDb: Firestore = db as Firestore;
+    
+    // Check if user already exists
+    const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user: User = userCredential.user;
+
+    // Add admin user to Firestore
+    await setDoc(doc(firestoreDb, 'admins', user.uid), {
       email: user.email,
-      displayName: user.displayName || 'Admin',
-      photoURL: user.photoURL || '',
       isAdmin: true,
       requiresPasswordChange: true,
+      lastPasswordChange: serverTimestamp(),
       createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-      lastPasswordChange: null
+      updatedAt: serverTimestamp()
     });
 
-    return user;
-  } catch (error) {
-    console.error('Error creating admin user:', error);
-    throw error;
+    return { success: true, user };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error in createAdminUser:', error);
+    return { success: false, error: errorMessage };
   }
 };
 
 export const updateAdminPassword = async (newPassword: string) => {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  
-  if (!user) {
-    throw new Error('No user is currently signed in');
-  }
-
   try {
-    // Update password in Firebase Auth
-    await updatePassword(user, newPassword);
+    if (!newPassword) {
+      throw new Error('New password is required');
+    }
+
+    const auth: Auth = getAuth();
+    const user: User | null = auth.currentUser;
     
-    // Update last password change timestamp in Firestore
-    await updateDoc(doc(db, 'admins', user.uid), {
+    if (!user || !user.email || !isAdminEmail(user.email)) {
+      throw new Error('No admin user is signed in');
+    }
+
+    await firebaseUpdatePassword(user, newPassword);
+    
+    // Update Firestore with password change
+    const firestoreDb: Firestore = db as Firestore;
+    await updateDoc(doc(firestoreDb, 'admins', user.uid), {
+      requiresPasswordChange: false,
       lastPasswordChange: serverTimestamp(),
-      requiresPasswordChange: false
+      updatedAt: serverTimestamp()
     });
 
-    return true;
-  } catch (error) {
-    console.error('Error updating password:', error);
-    throw error;
+    return { success: true };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error in updateAdminPassword:', error);
+    return { success: false, error: errorMessage };
   }
 };
 
 export const adminSignOut = async () => {
-  const auth = getAuth();
   try {
-    await signOut(auth);
-    // Clear any admin-specific session data here if needed
-  } catch (error) {
-    console.error('Error signing out:', error);
-    throw error;
+    const auth: Auth = getAuth();
+    await firebaseSignOut(auth);
+    return { success: true };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Error in adminSignOut:', error);
+    return { success: false, error: errorMessage };
   }
 };

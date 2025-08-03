@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { auth } from '../firebase';
+import { User } from 'firebase/auth';
 
 const TestFirebaseConfig = () => {
   useEffect(() => {
@@ -7,7 +8,7 @@ const TestFirebaseConfig = () => {
     console.log('Current User:', auth.currentUser);
     
     // Try to listen for auth state changes
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
       console.log('Auth State Changed:', user ? 'User is signed in' : 'No user signed in');
       if (user) {
         console.log('User details:', {

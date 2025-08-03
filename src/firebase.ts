@@ -1,7 +1,7 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Log environment variables for debugging (only in development)
 if (import.meta.env.DEV) {
@@ -27,29 +27,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
-let auth;
-let db;
-let storage;
-
+let app: FirebaseApp;
 try {
-  // Check if Firebase is already initialized to avoid duplicate initialization
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  
-  // Log successful initialization
-  console.log('Firebase initialized successfully');
-  
-  // Initialize Firebase services
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-  
-  console.log('Firebase services initialized');
-  
 } catch (error) {
   console.error('Firebase initialization error:', error);
-  throw error; // Re-throw to prevent the app from starting with a broken Firebase config
+  // Fallback to default app if initialization fails
+  app = getApp();
 }
+
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
+
+console.log('Firebase initialized successfully');
+console.log('Firebase services initialized');
 
 // Export the Firebase services
 export { auth, db, storage };
