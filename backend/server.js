@@ -13,8 +13,6 @@ import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
-import { WebSocketService } from './src/services/websocket.service.js';
 import { errorHandler } from './src/middleware/error.middleware.js';
 import { logger } from './src/utils/logger.js';
 import { initSentry } from './src/utils/sentry.js';
