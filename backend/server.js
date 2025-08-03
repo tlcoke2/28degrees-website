@@ -22,6 +22,8 @@ const __dirname = dirname(__filename);
 // Load environment variables early
 dotenv.config({ path: join(__dirname, '.env.production') });
 
+app.set('trust proxy', 1); // Trust the Railway/Cloudflare proxy
+
 // Import dynamic modules
 let errorHandler;
 let logger;
@@ -99,6 +101,15 @@ app.all('*', (req, res) => {
   res.status(404).json({
     status: 'fail',
     message: `Can't find ${req.originalUrl} on this server!`
+  });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: '28 Degrees West API root',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
   });
 });
 
