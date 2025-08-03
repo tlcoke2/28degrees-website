@@ -1,11 +1,21 @@
 [build]
   builder = "nixpacks"
   buildCommand = "cd backend && npm install"
-  startCommand = "cd backend && node server.js"
+  startCommand = "cd backend && ./start.sh"
 
 [deploy]
-  startCommand = "node server.js"
+  startCommand = "./backend/start.sh"
   healthcheckPath = "/api/v1/health"
-  healthcheckTimeout = 100
+  healthcheckTimeout = 30
   restartDelay = 5
   restartLimit = 5
+  
+[environments]
+  [environments.production]
+    NODE_ENV = "production"
+    PORT = "3000"
+    
+    # These should be set in Railway dashboard
+    # MONGODB_URI = "your_mongodb_uri"
+    # JWT_SECRET = "your_jwt_secret"
+    # Other environment variables...
