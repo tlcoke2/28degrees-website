@@ -1,121 +1,65 @@
+// server.js
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Stripe from 'stripe';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { createServer } from 'http';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import hpp from 'hpp';
-import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import { createServer } from 'http';
-import { Server } from 'socket.io'; // ✅ FIXED: Socket.IO Server import
+import cookieParser from 'cookie-parser';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { dirname, join } from 'path';
+import { Server } from 'socket.io';
 
-// Get directory context
+// Setup directory resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables
 dotenv.config();
 
-// Helper function to handle dynamic imports with proper file URL conversion
-const importFromPath = async (path) => {
-  try {
-    // Convert Windows path to file URL if needed
-    const fileUrl = path.startsWith('file://') ? path : 
-      `file://${path.replace(/\\/g, '/').replace(/^\//, '')}`;
-    return await import(fileUrl);
-  } catch (error) {
-    console.error(`❌ Failed to import from path: ${path}`, error);
-    throw error;
-  }
-};
+// Convert paths to file URLs for dynamic imports (Linux safe)
+const errorHandlerPath = pathToFileURL(join(__dirname, 'src', 'middleware', 'error.middleware.js')).href;
+const loggerPath = pathToFileURL(join(__dirname, 'src', 'utils', 'logger.js')).href;
+const apiRoutesPath = pathToFileURL(join(__dirname, 'src', 'routes', 'api.routes.js')).href;
 
-// Import middleware and utilities dynamically
-let errorHandler, logger;
+let errorHandler, logger, apiRoutes;
 try {
-  const errorModule = await importFromPath(join(__dirname, 'src', 'middleware', 'error.middleware.js'));
-  errorHandler = errorModule.errorHandler;
-  
-  const loggerModule = await importFromPath(join(__dirname, 'src', 'utils', 'logger.js'));
-  logger = loggerModule.logger;
-  
-  console.log('✅ Core middleware and utilities loaded successfully');
-} catch (error) {
-  console.error('❌ Failed to load core modules:', error);
+  ({ errorHandler } = await import(errorHandlerPath));
+  ({ logger } = await import(loggerPath));
+  apiRoutes = (await import(apiRoutesPath)).default;
+  console.log('✅ Core modules loaded successfully');
+} catch (err) {
+  console.error('❌ Failed to load core modules:', err);
   process.exit(1);
 }
 
-// Load API Routes
-let apiRoutes;
-try {
-  const apiModule = await importFromPath(join(__dirname, 'src', 'routes', 'api.routes.js'));
-  apiRoutes = apiModule.default;
-  console.log('✅ API routes loaded successfully');
-} catch (error) {
-  console.error('❌ Failed to load API routes:', error);
-  process.exit(1);
-}
-
-// Enhanced logging
-console.log('🚀 Starting 28 Degrees Backend Server...');
-console.log(`📅 ${new Date().toISOString()}`);
-console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-console.log(`🔧 Node Version: ${process.version}`);
-console.log(`📁 Working Directory: ${process.cwd()}`);
-console.log(`📂 __dirname: ${__dirname}`);
-console.log(`📂 __filename: ${__filename}`);
-
-// Directory content logging
-try {
-  const fs = await import('fs');
-  const files = fs.readdirSync(__dirname);
-  console.log('📂 Directory contents:', files);
-
-  const srcPath = join(__dirname, 'src');
-  if (fs.existsSync(srcPath)) {
-    const srcFiles = fs.readdirSync(srcPath);
-    console.log('📂 src/ contents:', srcFiles);
-  } else {
-    console.error('❌ src/ directory not found!');
-  }
-} catch (error) {
-  console.error('❌ Error reading directories:', error);
-}
-
-// Masked environment variable logging
-const logEnvVars = ['NODE_ENV', 'PORT', 'MONGODB_URI', 'JWT_SECRET', 'STRIPE_SECRET_KEY'];
-console.log('⚙️ Environment Variables:');
-logEnvVars.forEach(key => {
-  const val = process.env[key];
-  console.log(`   ${key}: ${val ? '***' + val.slice(-4) : 'Not set'}`);
-});
-
-// Optional Sentry setup
+// Optional: Initialize Sentry (skip if not configured)
 try {
   if (process.env.SENTRY_DSN) {
-    const { initSentry } = await import('./src/utils/sentry.js');
+    const sentryPath = pathToFileURL(join(__dirname, 'src', 'utils', 'sentry.js')).href;
+    const { initSentry } = await import(sentryPath);
     initSentry();
     console.log('✅ Sentry initialized');
   } else {
     console.log('ℹ️ Sentry not configured');
   }
-} catch (error) {
-  console.warn('⚠️ Sentry setup failed:', error.message);
+} catch (err) {
+  console.warn('⚠️ Sentry load error (optional):', err.message);
 }
 
-// Create Express and HTTP server
+// App initialization
 const app = express();
 const httpServer = createServer(app);
 
-// ✅ Initialize Socket.IO
+// Socket.IO setup
 let io;
 try {
-  const ioConfig = {
+  io = new Server(httpServer, {
     cors: {
       origin: process.env.NODE_ENV === 'production'
         ? ['https://28degreeswest.com', 'https://www.28degreeswest.com']
@@ -123,24 +67,23 @@ try {
       methods: ['GET', 'POST'],
       credentials: true
     }
-  };
-
-  io = new Server(httpServer, ioConfig);
+  });
   console.log('✅ Socket.IO initialized');
-} catch (error) {
-  console.error('❌ Failed to initialize Socket.IO:', error);
+} catch (err) {
+  console.error('❌ Socket.IO init failed:', err);
 }
 
-// WebSocket Service
+// Optional WebSocket service
 try {
-  const { WebSocketService } = await import('./src/services/websocket.service.js');
+  const wsServicePath = pathToFileURL(join(__dirname, 'src', 'services', 'websocket.service.js')).href;
+  const { WebSocketService } = await import(wsServicePath);
   new WebSocketService(io);
   console.log('✅ WebSocket service initialized');
-} catch (error) {
-  console.error('❌ WebSocket service failed:', error);
+} catch (err) {
+  console.warn('⚠️ WebSocket service failed:', err.message);
 }
 
-// Middleware configuration
+// Middleware
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
@@ -148,108 +91,72 @@ app.use(cors({
     : '*',
   credentials: true
 }));
-
 app.use(rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
-  message: 'Too many requests from this IP, try again in an hour.'
+  message: 'Too many requests. Try again in an hour.'
 }));
-
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(xss());
-app.use(hpp({
-  whitelist: ['duration', 'ratingsQuantity', 'ratingsAverage', 'maxGroupSize', 'difficulty', 'price']
-}));
+app.use(hpp({ whitelist: ['duration', 'ratingsAverage', 'price'] }));
 app.use(compression());
 
-// Route mounting
+// API routes
 app.use('/api/v1', apiRoutes);
 
-// 404 handler
+// Serve frontend (SPA) if in production
+if (process.env.NODE_ENV === 'production') {
+  const staticPath = join(__dirname, 'dist'); // Ensure frontend built to /dist
+  app.use(express.static(staticPath));
+  app.get('*', (req, res) => res.sendFile(join(staticPath, 'index.html')));
+}
+
+// 404 fallback
 app.all('*', (req, res) => {
-  console.warn(`⚠️ 404 - ${req.method} ${req.originalUrl}`);
+  console.warn(`⚠️ Route not found: ${req.originalUrl}`);
   res.status(404).json({
     status: 'fail',
-    message: `Can't find ${req.originalUrl} on this server!`
+    message: `Can't find ${req.originalUrl} on this server.`
   });
 });
 
-// Error middleware
+// Central error handler
 app.use((err, req, res, next) => {
-  console.error('🔥 Error:', err);
+  console.error('🔥 Unhandled Error:', err);
   errorHandler(err, req, res, next);
 });
 
-// MongoDB + Server Init
-const PORT = process.env.PORT || 3000;
-
+// MongoDB + start server
+const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     console.log('🔍 Connecting to MongoDB...');
-    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Provided' : 'Missing');
-    
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MongoDB connection string is required');
-    }
-
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000
     });
+    console.log('✅ Connected to MongoDB');
 
-    const db = mongoose.connection;
-    db.on('error', (err) => {
-      console.error('MongoDB connection error:', err);
-      process.exit(1);
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
     });
-
-    db.once('open', () => {
-      console.log(`✅ Connected to MongoDB: ${db.name} @ ${db.host}`);
-      
-      // Start the HTTP server after MongoDB connection is established
-      const server = httpServer.listen(PORT, '0.0.0.0', () => {
-        const address = server.address();
-        console.log(`🚀 Server running on ${address.address}:${address.port} in ${process.env.NODE_ENV || 'development'} mode`);
-        console.log('Environment variables:', {
-          NODE_ENV: process.env.NODE_ENV,
-          PORT: process.env.PORT,
-          MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
-          JWT_SECRET: process.env.JWT_SECRET ? 'Set' : 'Not set'
-        });
-      });
-
-      // Handle server errors
-      server.on('error', (err) => {
-        console.error('Server error:', err);
-        process.exit(1);
-      });
-
-      // Handle graceful shutdown
-      process.on('SIGTERM', () => {
-        console.log('SIGTERM received. Shutting down...');
-        server.close(() => {
-          console.log('💤 Server closed');
-          process.exit(0);
-        });
-      });
-    });
-
-  } catch (error) {
-    console.error('❌ Server startup failed:', error);
+  } catch (err) {
+    console.error('❌ MongoDB connection failed:', err);
     process.exit(1);
   }
 };
 
-// Unhandled promise rejections
+// Unhandled Promise Rejection
 process.on('unhandledRejection', err => {
-  console.error('UNHANDLED REJECTION 💥', err.name, err.message);
+  console.error('❗ Unhandled Rejection:', err);
   process.exit(1);
 });
 
 startServer();
+
 export default app;
 
