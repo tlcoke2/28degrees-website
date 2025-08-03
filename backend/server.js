@@ -22,14 +22,39 @@ const __dirname = dirname(__filename);
 // Load environment variables
 dotenv.config();
 
+// Helper function to handle dynamic imports with proper file URL conversion
+const importFromPath = async (path) => {
+  try {
+    // Convert Windows path to file URL if needed
+    const fileUrl = path.startsWith('file://') ? path : 
+      `file://${path.replace(/\\/g, '/').replace(/^\//, '')}`;
+    return await import(fileUrl);
+  } catch (error) {
+    console.error(`❌ Failed to import from path: ${path}`, error);
+    throw error;
+  }
+};
+
 // Import middleware and utilities dynamically
-const errorHandler = (await import(join(__dirname, 'src', 'middleware', 'error.middleware.js'))).errorHandler;
-const logger = (await import(join(__dirname, 'src', 'utils', 'logger.js'))).logger;
+let errorHandler, logger;
+try {
+  const errorModule = await importFromPath(join(__dirname, 'src', 'middleware', 'error.middleware.js'));
+  errorHandler = errorModule.errorHandler;
+  
+  const loggerModule = await importFromPath(join(__dirname, 'src', 'utils', 'logger.js'));
+  logger = loggerModule.logger;
+  
+  console.log('✅ Core middleware and utilities loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load core modules:', error);
+  process.exit(1);
+}
 
 // Load API Routes
 let apiRoutes;
 try {
-  apiRoutes = (await import(join(__dirname, 'src', 'routes', 'api.routes.js'))).default;
+  const apiModule = await importFromPath(join(__dirname, 'src', 'routes', 'api.routes.js'));
+  apiRoutes = apiModule.default;
   console.log('✅ API routes loaded successfully');
 } catch (error) {
   console.error('❌ Failed to load API routes:', error);
