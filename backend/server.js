@@ -13,8 +13,6 @@ import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { createServer } from 'http';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
 // Get the current directory name
 const __filename = fileURLToPath(import.meta.url);
