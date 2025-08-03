@@ -1,26 +1,26 @@
 [build]
   builder = "nixpacks"
   buildCommand = "cd backend && npm install"
-  startCommand = "cd backend && node server.js"
+  startCommand = "cd backend && npm start"
 
 [deploy]
-  startCommand = "node backend/server.js"
+  startCommand = "npm start"
   healthcheckPath = "/api/v1/health"
-  healthcheckTimeout = 60
+  healthcheckTimeout = 30
   restartDelay = 5
   restartLimit = 5
-  
+
 [environments]
   [environments.production]
     # Server Configuration
     NODE_ENV = "production"
-    PORT = "3000"
+    PORT = "3001"
     HOST = "0.0.0.0"
     
-    # Database Configuration
+    # Database Configuration (set in Railway dashboard)
     # MONGODB_URI = "your_mongodb_uri"
     
-    # Security
+    # Security (set in Railway dashboard)
     # JWT_SECRET = "your_jwt_secret"
     # JWT_EXPIRES_IN = "90d"
     # JWT_COOKIE_EXPIRES_IN = "90"
@@ -33,17 +33,19 @@
     CORS_ORIGIN = "https://28degreeswest.com,https://www.28degreeswest.com"
     
     # Logging
-    NODE_ENV = "production"
     LOG_LEVEL = "info"
-    
-    # Email (if applicable)
-    # EMAIL_FROM = "28 Degrees West <noreply@28degreeswest.com>"
-    # SENDGRID_USERNAME = "apikey"
-    # SENDGRID_PASSWORD = "your_sendgrid_api_key"
-    
-    # Stripe (if applicable)
-    # STRIPE_SECRET_KEY = "your_stripe_secret_key"
-    # STRIPE_WEBHOOK_SECRET = "your_stripe_webhook_secret"
     
     # Frontend URL (for CORS and redirects)
     FRONTEND_URL = "https://28degreeswest.com"
+    
+    # API Base URL (for frontend)
+    API_URL = "https://api.28degreeswest.com"
+    
+    # Stripe Configuration (set in Railway dashboard)
+    # STRIPE_SECRET_KEY = "your_stripe_secret_key"
+    # STRIPE_WEBHOOK_SECRET = "your_stripe_webhook_secret"
+    # STRIPE_PUBLISHABLE_KEY = "your_stripe_publishable_key"
+    
+    # Email Configuration (if using SendGrid, set in Railway dashboard)
+    # SENDGRID_API_KEY = "your_sendgrid_api_key"
+    # EMAIL_FROM = "28 Degrees West <noreply@28degreeswest.com>"
