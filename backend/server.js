@@ -37,13 +37,19 @@ logEnvVars.forEach(varName => {
   console.log(`   ${varName}: ${value ? '***' + value.slice(-4) : 'Not set'}`);
 });
 
-// Initialize Sentry
+// Initialize Sentry (optional)
 try {
   console.log('🔧 Initializing Sentry...');
-  initSentry();
-  console.log('✅ Sentry initialized');
+  // Check if Sentry DSN is configured
+  if (process.env.SENTRY_DSN) {
+    const { initSentry } = await import('./src/utils/sentry.js');
+    initSentry();
+    console.log('✅ Sentry initialized');
+  } else {
+    console.log('ℹ️ Sentry DSN not configured, skipping Sentry initialization');
+  }
 } catch (error) {
-  console.error('❌ Failed to initialize Sentry:', error);
+  console.warn('⚠️ Failed to initialize Sentry (optional):', error.message);
 }
 
 // Create Express app
