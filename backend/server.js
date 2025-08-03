@@ -13,10 +13,26 @@ import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { createServer } from 'http';
-import { errorHandler } from './src/middleware/error.middleware.js';
-import { logger } from './src/utils/logger.js';
-// Sentry will be imported dynamically if SENTRY_DSN is set
-import apiRoutes from './src/routes/api.routes.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get the current directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Import with dynamic paths
+const errorHandler = (await import(join(__dirname, 'src', 'middleware', 'error.middleware.js'))).errorHandler;
+const logger = (await import(join(__dirname, 'src', 'utils', 'logger.js'))).logger;
+
+// Import API routes
+let apiRoutes;
+try {
+  apiRoutes = (await import(join(__dirname, 'src', 'routes', 'api.routes.js'))).default;
+  console.log('✅ API routes loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load API routes:', error);
+  process.exit(1);
+}
 
 // Enhanced startup logging
 console.log('🚀 Starting 28 Degrees Backend Server...');
