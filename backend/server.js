@@ -39,7 +39,28 @@ console.log('🚀 Starting 28 Degrees Backend Server...');
 console.log(`📅 ${new Date().toISOString()}`);
 console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🔧 Node Version: ${process.version}`);
-console.log(`📁 Current Directory: ${process.cwd()}`);
+console.log(`📁 Current Working Directory: ${process.cwd()}`);
+console.log(`📂 __dirname: ${__dirname}`);
+console.log(`📂 __filename: ${__filename}`);
+
+// List all files in the current directory for debugging
+console.log('🔍 Listing files in current directory...');
+try {
+  const fs = await import('fs');
+  const files = fs.readdirSync(__dirname);
+  console.log('📂 Current directory contents:', files);
+  
+  // Check if src directory exists
+  const srcPath = join(__dirname, 'src');
+  if (fs.existsSync(srcPath)) {
+    const srcFiles = fs.readdirSync(srcPath);
+    console.log('📂 src/ directory contents:', srcFiles);
+  } else {
+    console.error('❌ src/ directory not found!');
+  }
+} catch (error) {
+  console.error('❌ Error listing directory contents:', error);
+}
 
 // Load environment variables
 console.log('🔍 Loading environment variables...');
