@@ -1,3 +1,6 @@
+// Correct File (you shared this):
+// src/routes/auth.routes.js
+
 import express from 'express';
 import { 
   register, 
@@ -23,3 +26,4 @@ router.get('/logout', logout);
 router.patch('/updateMyPassword', updatePassword);
 
 export default router;
+
