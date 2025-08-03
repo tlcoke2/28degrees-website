@@ -2,32 +2,40 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
-import fixAssetPaths from './vite-fix-asset-paths';
+// Optional: comment out if not in use
+// import fixAssetPaths from './vite-fix-asset-paths';
 
-// https://vitejs.dev/config/
-export default defineConfig(({ command, mode }) => {
-  // Use root path for custom domain
-  const base = mode === 'production' ? '/' : '/';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = resolve(__filename, '..');
+
+// Detect if we're in production mode
+export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
-  
+  const base = isProduction ? '/' : '/'; // Change to '/28degrees-website/' if deployed to subpath
+
   return {
+    base,
     plugins: [
       react(),
-      fixAssetPaths({
-        // Fix paths for images and other assets
-        patterns: [
-          { from: '**/*.{jpg,png,svg,ico}', to: 'assets/[name].[hash][extname]' },
-        ],
-      })
+      // Optional asset path fixer
+      // fixAssetPaths({
+      //   patterns: [
+      //     { from: '**/*.{jpg,png,svg,ico}', to: 'assets/[name].[hash][extname]' },
+      //   ],
+      // }),
     ],
-    base: base,
-    
-    // Server configuration for development
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'src'),
+        // Ensure long formatter module is resolvable if needed
+        'date-fns/_lib/format/longFormatters': 'date-fns/esm/_lib/format/longFormatters/index.js',
+      },
+    },
     server: {
       port: 3001,
-      strictPort: true, // Ensure the port is strictly used
+      strictPort: true,
       open: true,
-      host: '0.0.0.0', // Explicitly listen on all network interfaces
+      host: '0.0.0.0',
       cors: true,
       headers: {
         'Content-Security-Policy': `
@@ -41,26 +49,16 @@ export default defineConfig(({ command, mode }) => {
           frame-ancestors 'self';
           form-action 'self';
           base-uri 'self';
-        `.replace(/\s+/g, ' ').trim()
-      }
-    },
-    
-    // Build configuration
-    resolve: {
-      alias: {
-        // Fix for date-fns imports
-        'date-fns/_lib/format/longFormatters': 'date-fns/esm/_lib/format/longFormatters/index.js'
-      }
+        `.replace(/\s+/g, ' ').trim(),
+      },
     },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: !isProduction, // Only enable sourcemaps in development
+      sourcemap: !isProduction,
       manifest: true,
       minify: 'terser',
       chunkSizeWarningLimit: 1000,
-      
-      // Rollup options
       rollupOptions: {
         output: {
           manualChunks: (id) => {
@@ -73,8 +71,6 @@ export default defineConfig(({ command, mode }) => {
           assetFileNames: 'assets/[name].[hash][extname]',
         },
       },
-      
-      // Terser options for minification
       terserOptions: {
         compress: {
           drop_console: isProduction,
@@ -82,26 +78,13 @@ export default defineConfig(({ command, mode }) => {
         },
       },
     },
-    
-    // Resolve aliases for absolute imports
-    resolve: {
-      alias: {
-        '@': resolve(__dirname, 'src'),
-      },
-    },
-    
-    // Environment variables to expose to the client
     define: {
-      'process.env': {}
+      'process.env': {},
     },
-    
-    // Handle SPA routing
     preview: {
       port: 3000,
       strictPort: true,
     },
-    
-    // Optimize dependencies
     optimizeDeps: {
       include: ['@mui/material', '@emotion/react', '@emotion/styled'],
     },
