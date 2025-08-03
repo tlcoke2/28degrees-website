@@ -189,27 +189,57 @@ const PORT = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     console.log('🔍 Connecting to MongoDB...');
+    console.log('MongoDB URI:', process.env.MONGODB_URI ? 'Provided' : 'Missing');
+    
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MongoDB connection string is required');
+    }
+
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000
     });
 
     const db = mongoose.connection;
+    db.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+      process.exit(1);
+    });
+
     db.once('open', () => {
       console.log(`✅ Connected to MongoDB: ${db.name} @ ${db.host}`);
-    });
+      
+      // Start the HTTP server after MongoDB connection is established
+      const server = httpServer.listen(PORT, '0.0.0.0', () => {
+        const address = server.address();
+        console.log(`🚀 Server running on ${address.address}:${address.port} in ${process.env.NODE_ENV || 'development'} mode`);
+        console.log('Environment variables:', {
+          NODE_ENV: process.env.NODE_ENV,
+          PORT: process.env.PORT,
+          MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+          JWT_SECRET: process.env.JWT_SECRET ? 'Set' : 'Not set'
+        });
+      });
 
-    const server = httpServer.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
+      // Handle server errors
+      server.on('error', (err) => {
+        console.error('Server error:', err);
+        process.exit(1);
+      });
 
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM received. Shutting down...');
-      server.close(() => console.log('💤 Server closed'));
+      // Handle graceful shutdown
+      process.on('SIGTERM', () => {
+        console.log('SIGTERM received. Shutting down...');
+        server.close(() => {
+          console.log('💤 Server closed');
+          process.exit(0);
+        });
+      });
     });
 
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error);
+    console.error('❌ Server startup failed:', error);
     process.exit(1);
   }
 };
