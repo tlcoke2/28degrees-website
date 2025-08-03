@@ -8,8 +8,8 @@ import fixAssetPaths from './vite-fix-asset-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // Use repository name as base path for GitHub Pages
-  const base = process.env.NODE_ENV === 'production' ? '/28degrees-website/' : '/';
+  // Use root path for custom domain in production
+  const base = process.env.NODE_ENV === 'production' ? '/' : '/';
   const isProduction = mode === 'production';
   
   // Log environment variables for debugging (only in build mode)
