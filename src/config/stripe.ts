@@ -8,14 +8,12 @@ if (!stripePublishableKey) {
   console.warn('Stripe publishable key is not set. Please check your environment variables.');
 }
 
-// Initialize Stripe with stable API features
+// Initialize Stripe with minimal configuration
 export const stripePromise = loadStripe(stripePublishableKey, {
-  // Use a stable API version
-  apiVersion: '2023-10-16',
+  // Let Stripe.js automatically handle the API version
+  // Remove apiVersion to avoid conflicts with Stripe's latest version
   // Set Stripe.js locale to auto-detect user's language
-  locale: 'auto',
-  // Use stable features only
-  betas: []
+  locale: 'auto'
 });
 
 // Stripe price IDs for different tours
