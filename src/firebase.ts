@@ -1,20 +1,7 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-
-// Log environment variables for debugging (only in development)
-if (import.meta.env.DEV) {
-  console.log('Firebase Config Environment Variables:', {
-    hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
-    hasAuthDomain: !!import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    hasProjectId: !!import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    hasStorageBucket: !!import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    hasMessagingSenderId: !!import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    hasAppId: !!import.meta.env.VITE_FIREBASE_APP_ID,
-    hasMeasurementId: !!import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-  });
-}
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,22 +14,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app: FirebaseApp;
-try {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  // Fallback to default app if initialization fails
-  app = getApp();
-}
+const app = initializeApp(firebaseConfig);
 
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
-console.log('Firebase initialized successfully');
-console.log('Firebase services initialized');
-
-// Export the Firebase services
-export { auth, db, storage };
 export default app;

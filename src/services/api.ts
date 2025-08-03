@@ -42,7 +42,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Get API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'https://28degrees-website-production.up.railway.app/api/v1';
+const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Define API response types
 interface ApiResponse<T = any> {

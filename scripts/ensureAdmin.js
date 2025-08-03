@@ -6,73 +6,48 @@ import { dirname, resolve } from 'path';
 // Configure dotenv to load .env.production
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+dotenv.config({ path: resolve(__dirname, '../.env.production') });
 
-// Load environment variables
-const envPath = process.env.NODE_ENV === 'production' 
-  ? resolve(__dirname, '../.env.production')
-  : resolve(__dirname, '../.env');
-
-dotenv.config({ path: envPath });
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@28degreeswest.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; // This would be used if creating a new admin user
+const ADMIN_EMAIL = 'admin@28degreeswest.com';
 
 async function ensureAdmin() {
   try {
-    console.log('🔍 Starting admin user verification...');
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('Starting admin user check...');
     
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in environment variables');
-    }
+    // Skip Firebase Admin initialization for now
+    console.log('Skipping Firebase Admin initialization (not configured for this environment)');
     
-    console.log('🔌 Connecting to MongoDB...');
-    console.log(`Database: ${new URL(process.env.MONGODB_URI).pathname.replace(/^\//, '')}`);
-    
-    // Generate a consistent UUID for the admin user if needed
-    const crypto = await import('crypto');
-    const firebaseUid = `admin-${crypto.randomUUID()}`;
+    // Use a placeholder UID since we're not using Firebase Admin
+    const firebaseUid = 'admin-user-placeholder-id';
 
-    const client = new MongoClient(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000, // 10 second timeout
-      socketTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-      retryWrites: true,
-      w: 'majority'
-    });
-    
-    try {
-      await client.connect();
-      console.log('✅ Successfully connected to MongoDB');
-      
-      const db = client.db();
-      const usersCollection = db.collection('users');
-      
-      console.log(`🔎 Checking for admin user: ${ADMIN_EMAIL}`);
-      const existingUser = await usersCollection.findOne({ 
-        $or: [
-          { email: ADMIN_EMAIL },
-          { role: 'admin' }
-        ] 
+    // 2. Try to connect to MongoDB if URI is available
+    if (process.env.MONGODB_URI) {
+      console.log('Attempting to connect to MongoDB...');
+      const client = new MongoClient(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        socketTimeoutMS: 5000,
+        connectTimeoutMS: 5000
       });
       
-      if (existingUser) {
-        console.log('✅ Admin user already exists:');
-        console.log(`   - Email: ${existingUser.email}`);
-        console.log(`   - Role: ${existingUser.role}`);
-        console.log(`   - ID: ${existingUser._id}`);
-      } else {
-        console.log('⚠️  Admin user not found. Creating new admin user...');
+      try {
+        await client.connect();
+        console.log('✅ Connected to MongoDB');
         
-        const newAdmin = {
-          name: 'System Administrator',
-          email: ADMIN_EMAIL,
-          role: 'admin',
-          firebaseUid: firebaseUid,
-          isActive: true,
-          emailVerified: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+        const db = client.db();
+        const usersCollection = db.collection('users');
+        
+        console.log(`Checking if admin user exists in MongoDB...`);
+        const existingUser = await usersCollection.findOne({ email: ADMIN_EMAIL });
+        
+        if (!existingUser) {
+          console.log('Creating admin user in MongoDB...');
+          await usersCollection.insertOne({
+            name: 'Admin',
+            email: ADMIN_EMAIL,
+            role: 'admin',
+            firebaseUid: firebaseUid,
+            createdAt: new Date(),
+            updatedAt: new Date()
           });
           console.log('✅ Created admin user in MongoDB');
         } else {

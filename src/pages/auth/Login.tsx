@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Box, Button, TextField, Typography, Container, Paper, Link as MuiLink, Alert } from '@mui/material';
-import { FirebaseError } from 'firebase/app';
+import { useAuth } from '../../contexts/UserContext';
+import { Box, Button, TextField, Typography, Container, Paper, Link as MuiLink } from '@mui/material';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const { login, loading: authLoading } = useAuth();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,27 +17,11 @@ const Login: React.FC = () => {
     setLoading(true);
     
     try {
-      if (!email || !password) {
-        setError('Please enter both email and password');
-        return;
-      }
-      
       await login(email, password);
       navigate('/dashboard');
-    } catch (error) {
-      const firebaseError = error as FirebaseError;
-      let errorMessage = 'Failed to log in. Please check your credentials.';
-      
-      if (firebaseError.code === 'auth/invalid-email' || 
-          firebaseError.code === 'auth/user-not-found' ||
-          firebaseError.code === 'auth/wrong-password') {
-        errorMessage = 'Invalid email or password';
-      } else if (firebaseError.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed login attempts. Please try again later.';
-      }
-      
-      setError(errorMessage);
-      console.error('Login error:', firebaseError);
+    } catch (err) {
+      setError('Failed to log in. Please check your credentials.');
+      console.error('Login error:', err);
     }
     
     setLoading(false);

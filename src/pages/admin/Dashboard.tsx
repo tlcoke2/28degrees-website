@@ -1,7 +1,10 @@
+// TODO: Uncomment and configure Firebase when ready
+// import { useAuthState } from 'react-firebase-hooks/auth';
+// import { auth } from '../../config/firebase';
+// import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Typography, Paper, Grid } from '@mui/material';
+import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { useAdmin } from '../../contexts/AdminContext';
 
 // Create a styled Paper component for the dashboard cards
 const DashboardCard = styled(Paper)(({ theme }) => ({
@@ -12,34 +15,51 @@ const DashboardCard = styled(Paper)(({ theme }) => ({
   justifyContent: 'space-between',
 }));
 
-
+const StyledGrid = styled('div')(({ theme }) => ({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+  gap: theme.spacing(3),
+  width: '100%',
+  [theme.breakpoints.down('sm')]: {
+    gridTemplateColumns: '1fr',
+  },
+}));
 
 const AdminDashboard = () => {
+  // TODO: Uncomment when Firebase is configured
+  // const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  const { admin, loading } = useAdmin();
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  // TODO: Uncomment when Firebase is configured
+  // const handleSignOut = async () => {
+  //   try {
+  //     await signOut(auth);
+  //     navigate('/admin/login');
+  //   } catch (error) {
+  //     console.error('Error signing out:', error);
+  //   }
+  // };
 
-  if (!admin) {
-    navigate('/admin/login');
-    return null;
-  }
+  // TODO: Uncomment when Firebase is configured
+  // if (!user) {
+  //   navigate('/admin/login');
+  //   return null;
+  // }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Welcome back, {admin.displayName || 'Admin'}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1">
+          Admin Dashboard
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Manage your website content and settings from this dashboard
-        </Typography>
+        {/* TODO: Uncomment when Firebase is configured
+        <Button variant="outlined" onClick={handleSignOut}>
+          Sign Out
+        </Button>
+        */}
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
+      <StyledGrid>
         <DashboardCard>
           <div>
             <Typography variant="h6" gutterBottom>
@@ -119,40 +139,7 @@ const AdminDashboard = () => {
             Configure Payments
           </Button>
         </DashboardCard>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4}>
-          <DashboardCard>
-            <div>
-              <Typography variant="h6" gutterBottom>
-                Users
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                Manage user accounts and permissions.
-              </Typography>
-            </div>
-            <Button variant="contained" fullWidth onClick={() => navigate('/admin/users')}>
-              Manage Users
-            </Button>
-          </DashboardCard>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4}>
-          <DashboardCard>
-            <div>
-              <Typography variant="h6" gutterBottom>
-                Settings
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                Configure website settings and preferences.
-              </Typography>
-            </div>
-            <Button variant="contained" fullWidth onClick={() => navigate('/admin/settings')}>
-              Manage Settings
-            </Button>
-          </DashboardCard>
-        </Grid>
-      </Grid>
+      </StyledGrid>
     </Container>
   );
 };

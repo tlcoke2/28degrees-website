@@ -2,24 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
-import type { Plugin } from 'vite';
 import fixAssetPaths from './vite-fix-asset-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // Use root path for custom domain in production
-  const base = process.env.NODE_ENV === 'production' ? '/' : '/';
+  // Use root path for custom domain, or repository name for GitHub Pages
+  const base = mode === 'production' ? '/28degrees-website/' : '/';
   const isProduction = mode === 'production';
-  
-  // Log environment variables for debugging (only in build mode)
-  if (command === 'build') {
-    console.log('Environment variables during build:');
-    console.log('VITE_API_URL:', process.env.VITE_API_URL ? '***' : 'Not set');
-    console.log('VITE_FIREBASE_API_KEY:', process.env.VITE_FIREBASE_API_KEY ? '***' : 'Not set');
-    console.log('VITE_FIREBASE_AUTH_DOMAIN:', process.env.VITE_FIREBASE_AUTH_DOMAIN || 'Not set');
-    console.log('VITE_STRIPE_PUBLISHABLE_KEY:', process.env.VITE_STRIPE_PUBLISHABLE_KEY ? '***' : 'Not set');
-  }
   
   return {
     plugins: [
@@ -29,26 +18,11 @@ export default defineConfig(({ command, mode }) => {
         patterns: [
           { from: '**/*.{jpg,png,svg,ico}', to: 'assets/[name].[hash][extname]' },
         ],
-      }),
-      // Copy 404.html to the root of the dist directory
-      {
-        name: 'copy-404',
-        apply: 'build',
-        generateBundle() {
-          try {
-            const content = readFileSync(resolve(__dirname, 'public/404.html'), 'utf-8');
-            this.emitFile({
-              type: 'asset',
-              fileName: '404.html',
-              source: content
-            });
-          } catch (error) {
-            console.error('Error copying 404.html:', error);
-          }
-        }
-      } as Plugin
+      })
     ],
     base: base,
+    
+    // Server configuration for development
     server: {
       port: 3001,
       strictPort: true, // Ensure the port is strictly used
@@ -61,8 +35,8 @@ export default defineConfig(({ command, mode }) => {
           script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com;
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           img-src 'self' data: https:;
-          font-src 'self' data: https://fonts.gstatic.com;
-          connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.firebaseio.com https://*.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com;
+          connect-src 'self' https://api.stripe.com https://*.stripe.com;
           frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
           frame-ancestors 'self';
           form-action 'self';

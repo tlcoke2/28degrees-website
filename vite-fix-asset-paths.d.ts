@@ -8,7 +8,7 @@ declare module './vite-fix-asset-paths' {
     }>;
   }
   
-  declare function fixAssetPaths(options?: FixAssetPathsOptions): PluginOption;
+  function fixAssetPaths(options?: FixAssetPathsOptions): PluginOption;
   
   export default fixAssetPaths;
 }

@@ -8,13 +8,8 @@ if (!stripePublishableKey) {
   console.warn('Stripe publishable key is not set. Please check your environment variables.');
 }
 
-// Initialize Stripe with minimal configuration
-export const stripePromise = loadStripe(stripePublishableKey, {
-  // Let Stripe.js automatically handle the API version
-  // Remove apiVersion to avoid conflicts with Stripe's latest version
-  // Set Stripe.js locale to auto-detect user's language
-  locale: 'auto'
-});
+// Initialize Stripe once and export the promise
+export const stripePromise = loadStripe(stripePublishableKey);
 
 // Stripe price IDs for different tours
 export const STRIPE_PRICE_IDS = {

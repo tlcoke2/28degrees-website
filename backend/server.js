@@ -70,10 +70,9 @@ const startServer = async () => {
     });
     console.log('✅ Connected to MongoDB');
     
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 http://localhost:${PORT}`);
-      console.log(`🌍 Server is accessible on the network at: http://[YOUR_SERVER_IP]:${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to connect to MongoDB', error);
