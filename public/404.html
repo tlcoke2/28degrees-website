@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>28 Degrees West - Redirecting...</title>
+    <script>
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      
+      // This script takes the current url and converts the path and query
+      // string into just a query string, and then redirects the browser
+      // to the new url with only a query string and hash fragment,
+      // e.g. https://28degreeswest.com/?/admin/login
+      
+      // Get the current URL path and query string
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      const queryString = window.location.search;
+      const hashFragment = window.location.hash;
+      
+      // Create a new URL with the path as a query parameter
+      const newUrl = window.location.origin + 
+                    '/?p=/' + 
+                    pathSegments.join('/') + 
+                    (queryString ? '&' + queryString.substring(1) : '') + 
+                    hashFragment;
+      
+      // Redirect to the new URL
+      window.history.replaceState(null, null, newUrl);
+      window.location.replace(newUrl);
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to the 28 Degrees West website...</p>
+    <p>If you are not redirected automatically, <a href="/">click here</a>.</p>
+  </body>
+</html>

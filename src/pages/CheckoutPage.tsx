@@ -35,7 +35,7 @@ const CheckoutPage = () => {
       
       // Here you would typically send the payment intent ID to your backend
       // to confirm the booking and update your database
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/confirm-booking`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/bookings/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,12 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
+import type { Plugin } from 'vite';
 import fixAssetPaths from './vite-fix-asset-paths';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
-  // Use root path for custom domain, or repository name for GitHub Pages
-  const base = mode === 'production' ? '/28degrees-website/' : '/';
+  // Use root path for custom domain
+  const base = '/';
   const isProduction = mode === 'production';
   
   return {
@@ -18,11 +20,26 @@ export default defineConfig(({ command, mode }) => {
         patterns: [
           { from: '**/*.{jpg,png,svg,ico}', to: 'assets/[name].[hash][extname]' },
         ],
-      })
+      }),
+      // Copy 404.html to the root of the dist directory
+      {
+        name: 'copy-404',
+        apply: 'build',
+        generateBundle() {
+          try {
+            const content = readFileSync(resolve(__dirname, 'public/404.html'), 'utf-8');
+            this.emitFile({
+              type: 'asset',
+              fileName: '404.html',
+              source: content
+            });
+          } catch (error) {
+            console.error('Error copying 404.html:', error);
+          }
+        }
+      } as Plugin
     ],
     base: base,
-    
-    // Server configuration for development
     server: {
       port: 3001,
       strictPort: true, // Ensure the port is strictly used
@@ -35,8 +52,8 @@ export default defineConfig(({ command, mode }) => {
           script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com;
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           img-src 'self' data: https:;
-          font-src 'self' https://fonts.gstatic.com;
-          connect-src 'self' https://api.stripe.com https://*.stripe.com;
+          font-src 'self' data: https://fonts.gstatic.com;
+          connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.firebaseio.com https://*.googleapis.com;
           frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
           frame-ancestors 'self';
           form-action 'self';

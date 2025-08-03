@@ -61,6 +61,11 @@ const navItems = [
   { name: 'Social', path: '/social' },
   { name: 'About', path: '/about' },
   { name: 'Contact', path: '/contact' },
+  { 
+    name: 'Admin', 
+    path: '/admin/login',
+    admin: true 
+  },
 ];
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
@@ -226,6 +231,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 Book Now
               </Button>
 
+              <Button
+                component={RouterLink}
+                to="/admin/login"
+                color="inherit"
+                sx={{
+                  ml: 2,
+                  color: 'inherit',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+              >
+                Admin Login
+              </Button>
               <UserMenu />
             </Box>
           </Toolbar>

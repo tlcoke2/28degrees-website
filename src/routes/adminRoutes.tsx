@@ -1,76 +1,92 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import ProtectedRoute from '../components/auth/ProtectedRoute';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import AdminLayout from '../layouts/AdminLayout';
+import { useAdmin } from '../contexts/AdminContext';
 
 // Lazy load admin components
-const Dashboard = lazy(() => import('../pages/admin/Dashboard'));
+const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
 const ToursManagement = lazy(() => import('../pages/admin/ToursManagement'));
 const EventsManagement = lazy(() => import('../pages/admin/EventsManagement'));
 const BookingsManagement = lazy(() => import('../pages/admin/BookingsManagement'));
 const UsersManagement = lazy(() => import('../pages/admin/UsersManagement'));
 const StripeConfig = lazy(() => import('../pages/admin/StripeConfig'));
+const Settings = lazy(() => import('../pages/admin/Settings'));
+
+// Wrapper component to handle admin authentication and layout
+const AdminRouteWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { admin, loading } = useAdmin();
+
+  if (loading) {
+    return <LoadingSpinner fullHeight />;
+  }
+
+  if (!admin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <AdminLayout>{children}</AdminLayout>;
+};
+
+// Wrapper for admin routes with layout and auth
+const AdminRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => (
+  <AdminRouteWrapper>
+    <Suspense fallback={<LoadingSpinner fullHeight />}>
+      {element}
+    </Suspense>
+  </AdminRouteWrapper>
+);
 
 const AdminRoutes = () => (
   <Routes>
     <Route 
+      path="" 
+      element={
+        <AdminRouteWrapper>
+          <Navigate to="dashboard" replace />
+        </AdminRouteWrapper>
+      } 
+    />
+    <Route 
       path="dashboard" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Dashboard />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<AdminDashboard />} />
       } 
     />
     <Route 
       path="tours" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <ToursManagement />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<ToursManagement />} />
       } 
     />
     <Route 
       path="events" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <EventsManagement />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<EventsManagement />} />
       } 
     />
     <Route 
       path="bookings" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <BookingsManagement />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<BookingsManagement />} />
       } 
     />
     <Route 
       path="users" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <UsersManagement />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<UsersManagement />} />
       } 
     />
     <Route 
       path="stripe-config" 
       element={
-        <ProtectedRoute adminOnly>
-          <Suspense fallback={<LoadingSpinner />}>
-            <StripeConfig />
-          </Suspense>
-        </ProtectedRoute>
+        <AdminRoute element={<StripeConfig />} />
+      } 
+    />
+    <Route 
+      path="settings" 
+      element={
+        <AdminRoute element={<Settings />} />
       } 
     />
   </Routes>

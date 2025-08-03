@@ -45,7 +45,7 @@ export const PaymentForm = ({
     // Create PaymentIntent as soon as the component mounts
     const createPaymentIntent = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/create-payment-intent`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/payments/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

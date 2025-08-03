@@ -1,2 +1,11 @@
-# Handle client-side routing - redirect all requests to index.html
-/* /index.html 200
+# Single Page Apps for GitHub Pages
+# https://github.com/rafgraph/spa-github-pages
+#
+# This is a single page app that uses client-side routing (React Router).
+# We need to configure the server to always serve index.html for any request path.
+#
+# The following directives will redirect requests from /some-path to /some-path/index.html.
+# If index.html doesn't exist, it will serve the 404.html page.
+
+# Redirect all requests to index.html
+/*    /index.html   200

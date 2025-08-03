@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && node scripts/copy-redirects.js && node scripts/fix-asset-paths.js",
+    "build": "tsc && vite build && node scripts/copy-redirects.js && node scripts/fix-asset-paths.js && node scripts/fix-spa-routing.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "node deploy-gh-pages.js",
     "setup:admin": "node scripts/ensureAdmin.js",
-    "postinstall": "npm run setup:admin"
+    "postinstall": "npm run setup:admin",
+    "setup:spa": "node scripts/fix-spa-routing.js"
   },
   "homepage": "https://tlcoke2.github.io/28degrees-website",
   "dependencies": {

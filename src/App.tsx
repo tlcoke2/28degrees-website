@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './components/Layout/AppLayout';
 import Home from './pages/Home';
 import Tours from './pages/Tours';
@@ -54,7 +54,6 @@ const CookieConsentWrapper: React.FC = () => {
 // Separate component to use hooks at the top level
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return <div>Loading...</div>; // Or a loading spinner
@@ -113,7 +112,13 @@ const AppContent: React.FC = () => {
         
         {/* Admin routes */}
         <Route path="/admin">
-          {/* Admin login */}
+          {/* Admin login - redirect to dashboard if already logged in */}
+          <Route 
+            index 
+            element={
+              user ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="login" replace />
+            } 
+          />
           <Route 
             path="login" 
             element={
@@ -125,15 +130,12 @@ const AppContent: React.FC = () => {
           <Route
             path="*"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRole="admin">
                 <AdminRoutes />
               </ProtectedRoute>
             }
           />
         </Route>
-        <Route path="/admin/*" element={
-          user ? <AdminRoutes /> : <Navigate to="/admin/login" state={{ from: location }} replace />
-        } />
         
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
