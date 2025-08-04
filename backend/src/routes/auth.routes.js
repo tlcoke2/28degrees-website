@@ -1,4 +1,3 @@
-// Correct File (you shared this):
 // src/routes/auth.routes.js
 
 import express from 'express';

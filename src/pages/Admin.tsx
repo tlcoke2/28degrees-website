@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { Container, Typography, Box, Button, TextField, Select, MenuItem, FormControl, InputLabel, Alert, SelectChangeEvent, Paper } from '@mui/material';
+import {
+  Container, Typography, Box, Button, TextField, Select, MenuItem,
+  FormControl, InputLabel, Alert, Paper, IconButton
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { Add, Close } from '@mui/icons-material';
+import axios from 'axios';
 
 interface TourFormData {
   title: string;
@@ -21,38 +26,77 @@ const Admin: React.FC = () => {
     features: [],
     image: null,
   });
+  const [featureInput, setFeatureInput] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>) => {
+  const handleInputChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = event.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'price' ? Number(value) : value,
     }));
   };
 
-  const handleFeatureChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { value } = event.target;
-    if (value) {
+  const handleDurationChange = (
+    event: React.ChangeEvent<{ value: unknown }>
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      duration: event.target.value as string,
+    }));
+  };
+
+  const handleFeatureAdd = () => {
+    if (featureInput.trim()) {
       setFormData(prev => ({
         ...prev,
-        features: [...prev.features, value]
+        features: [...prev.features, featureInput.trim()],
       }));
+      setFeatureInput('');
     }
   };
 
   const handleFeatureRemove = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      features: prev.features.filter((_, i) => i !== index)
+      features: prev.features.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFormData(prev => ({ ...prev, image: e.target.files![0] }));
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const data = new FormData();
+    data.append('title', formData.title);
+    data.append('description', formData.description);
+    data.append('duration', formData.duration);
+    data.append('price', String(formData.price));
+    formData.features.forEach((f, i) => data.append(`features[${i}]`, f));
+    if (formData.image) {
+      data.append('image', formData.image);
+    }
+
     try {
-      // TODO: Implement actual form submission logic (e.g., API call)
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/tours`,
+        data,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            // Add authorization if needed:
+            // Authorization: `Bearer ${adminToken}`
+          },
+        }
+      );
       setSuccessMessage('Tour successfully created!');
       setErrorMessage('');
       setFormData({
@@ -73,28 +117,27 @@ const Admin: React.FC = () => {
     <Box sx={{ flexGrow: 1 }}>
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h3" component="h2" gutterBottom align="center">
+          <Typography variant="h4" align="center" gutterBottom>
             Admin Dashboard
           </Typography>
-          
+
           {successMessage && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {successMessage}
             </Alert>
           )}
-          
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {errorMessage}
             </Alert>
           )}
 
-          <Typography variant="h5" component="h3" gutterBottom>
+          <Typography variant="h6" gutterBottom>
             Create New Tour
           </Typography>
-          
+
           <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box display="flex" flexDirection="column" gap={2}>
               <TextField
                 fullWidth
                 label="Tour Title"
@@ -103,7 +146,7 @@ const Admin: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
+
               <TextField
                 fullWidth
                 multiline
@@ -114,14 +157,13 @@ const Admin: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
-              <FormControl fullWidth>
+
+              <FormControl fullWidth required>
                 <InputLabel>Duration</InputLabel>
                 <Select
                   name="duration"
                   value={formData.duration}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleDurationChange}
                 >
                   <MenuItem value="">Select Duration</MenuItem>
                   <MenuItem value="Half Day">Half Day</MenuItem>
@@ -129,7 +171,7 @@ const Admin: React.FC = () => {
                   <MenuItem value="Multi-Day">Multi-Day</MenuItem>
                 </Select>
               </FormControl>
-              
+
               <TextField
                 fullWidth
                 type="number"
@@ -139,56 +181,52 @@ const Admin: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
-              <Box sx={{ mb: 2 }}>
+
+              <Box>
                 <Typography variant="subtitle1" gutterBottom>
                   Features
                 </Typography>
-                <TextField
-                  fullWidth
-                  placeholder="Enter a feature and press Enter"
-                  onKeyDown={(e) => e.key === 'Enter' && handleFeatureChange(e as any)}
-                />
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+                <Box display="flex" gap={1} mb={1}>
+                  <TextField
+                    fullWidth
+                    value={featureInput}
+                    onChange={(e) => setFeatureInput(e.target.value)}
+                    placeholder="Add feature"
+                  />
+                  <IconButton onClick={handleFeatureAdd} color="primary">
+                    <Add />
+                  </IconButton>
+                </Box>
+                <Box display="flex" flexDirection="column" gap={1}>
                   {formData.features.map((feature, index) => (
                     <Box
                       key={index}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        p: 1,
-                        bgcolor: 'grey.100',
-                        borderRadius: 1,
-                      }}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{ p: 1, bgcolor: 'grey.100', borderRadius: 1 }}
                     >
                       <Typography>{feature}</Typography>
-                      <Button
+                      <IconButton
                         size="small"
                         onClick={() => handleFeatureRemove(index)}
                       >
-                        Remove
-                      </Button>
+                        <Close />
+                      </IconButton>
                     </Box>
                   ))}
                 </Box>
               </Box>
-              
-              <Button
-                variant="contained"
-                color="primary"
-                type="submit"
-                sx={{ mt: 2 }}
-              >
-                Add Tour
+
+              <Button variant="outlined" component="label">
+                Upload Tour Image
+                <input type="file" hidden onChange={handleImageChange} />
               </Button>
-              
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => navigate('/')}
-                sx={{ mt: 2, ml: 2 }}
-              >
+
+              <Button variant="contained" type="submit" color="primary">
+                Submit Tour
+              </Button>
+              <Button variant="text" onClick={() => navigate('/')}>
                 Back to Home
               </Button>
             </Box>
@@ -200,3 +238,4 @@ const Admin: React.FC = () => {
 };
 
 export default Admin;
+

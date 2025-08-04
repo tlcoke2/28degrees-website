@@ -143,10 +143,10 @@ const Tours: React.FC = () => {
     <div>
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Typography variant="h3" component="h1" gutterBottom align="center">
-          Our Tours & Experiences
+          Our Events & Experiences
         </Typography>
         <Typography variant="h6" color="text.secondary" align="center" sx={{ mb: 6 }}>
-          Discover the best of Jamaica's South Coast with our curated selection of tours
+          Discover the best of Jamaica's South Coast with our curated selection of events & experiences
         </Typography>
 
         <Box sx={{

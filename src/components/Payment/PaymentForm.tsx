@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import type { StripeCardElementChangeEvent, StripeCardElement } from '@stripe/stripe-js';
-import { Box, Button, Typography, CircularProgress, Alert, TextField, Stack } from '@mui/material';
+import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
+import { Box, Button, Typography, CircularProgress, Alert, Stack } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../contexts/UserContext';
 
@@ -50,95 +50,100 @@ export const PaymentForm = ({
   onError,
 }: PaymentFormProps) => {
   const { user } = useAuth() as { user: User | null };
-  const [succeeded, setSucceeded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [disabled, setDisabled] = useState(true);
   const [clientSecret, setClientSecret] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const stripe = useStripe();
   const elements = useElements();
   const { enqueueSnackbar } = useSnackbar();
 
-  // Initialize payment intent when component mounts
+  // Get or create a payment intent when the component mounts
   useEffect(() => {
     const createPaymentIntent = async () => {
       try {
+        const token = await user?.getIdToken();
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/payments/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${await user?.getIdToken()}`
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
           body: JSON.stringify({
-            amount: Math.round(amount * 100), // Convert to cents
-            currency: currency.toLowerCase(),
+            amount,
+            currency,
             description,
             metadata: {
               ...metadata,
               userId: user?.uid || 'guest',
-              userEmail: user?.email || email,
+              userEmail: user?.email || 'guest@example.com',
             },
           }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create payment intent');
+          throw new Error('Failed to create payment intent');
         }
 
         const { clientSecret } = await response.json();
         setClientSecret(clientSecret);
       } catch (err) {
-        console.error('Error creating payment intent:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        onError?.(err instanceof Error ? err.message : 'An error occurred');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to initialize payment';
+        setError(errorMessage);
+        onError?.(errorMessage);
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       }
     };
 
-    if (amount > 0 && !clientSecret) {
+    if (amount > 0) {
       createPaymentIntent();
     }
-  }, [amount, currency, description, metadata, user, email, onError]);
+  }, [amount, currency, description, metadata, user, onError]);
 
   // Handle card input changes
-  const handleCardChange = async (event: StripeCardElementChangeEvent) => {
+  const handleChange = (event: StripeCardElementChangeEvent) => {
     setDisabled(event.empty);
-    setError(event.error ? event.error.message || 'Card details are incomplete' : null);
+    setError(event.error ? event.error.message || 'Invalid card details' : null);
   };
 
   // Handle form submission
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
-    if (!stripe || !elements) {
-      // Stripe.js has not loaded yet
-      return;
-    }
-
     setProcessing(true);
     setError(null);
 
+    if (!stripe || !elements) {
+      setError('Stripe has not been properly initialized');
+      setProcessing(false);
+      return;
+    }
+
     try {
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error('Card element not found');
+      }
+
+      // Get the customer email from user context or empty string
+      const customerEmail = user?.email || '';
+      
       // Confirm the card payment
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement) as StripeCardElement,
+          card: cardElement,
           billing_details: {
-            name: name.trim() || 'Guest Customer',
-            email: email.trim() || user?.email || '',
+            name: 'Guest Customer',
+            email: customerEmail,
           },
         },
-        receipt_email: email.trim() || user?.email || undefined,
+        receipt_email: customerEmail || undefined,
       });
 
       if (stripeError) {
         throw new Error(stripeError.message || 'Payment failed');
       }
 
-      if (paymentIntent.status === 'succeeded') {
-        setSucceeded(true);
+      if (paymentIntent?.status === 'succeeded') {
         onSuccess(paymentIntent.id);
         
         // Show success message
@@ -156,51 +161,41 @@ export const PaymentForm = ({
 
   // Render the payment form
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500, mx: 'auto', p: 3 }}>
       <Stack spacing={3}>
         <Typography variant="h5" component="h2" gutterBottom>
           Payment Details
         </Typography>
-          Thank you for your payment. Your booking is now confirmed.
+        
+        <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+          <CardElement
+            options={CARD_ELEMENT_OPTIONS}
+            onChange={handleChange}
+          />
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Button
+          type="submit"
+          disabled={!stripe || processing || disabled}
+          fullWidth
+          variant="contained"
+          color="primary"
+          size="large"
+          startIcon={processing ? <CircularProgress size={20} color="inherit" /> : null}
+        >
+          {processing ? 'Processing...' : `Pay $${(amount / 100).toFixed(2)}`}
+        </Button>
+
+        <Typography variant="caption" color="text.secondary" display="block" mt={2}>
+          Your payment is secure and encrypted.
         </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 500, mx: 'auto', p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Payment Details
-      </Typography>
-      
-      <Box sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-        <CardElement
-          options={CARD_OPTIONS}
-          onChange={handleChange}
-        />
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Button
-        type="submit"
-        disabled={!stripe || processing || disabled}
-        fullWidth
-        variant="contained"
-        color="primary"
-        size="large"
-        startIcon={processing ? <CircularProgress size={20} color="inherit" /> : null}
-      >
-        {processing ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
-      </Button>
-
-      <Typography variant="caption" color="text.secondary" display="block" mt={2}>
-        Your payment is secure and encrypted.
-      </Typography>
+      </Stack>
     </Box>
   );
 };

@@ -65,7 +65,7 @@ const SlidingBanner: React.FC = () => {
     // Banner content - customize as needed
     const bannerItems = [
       { id: 1, type: 'logo' as const, content: logo },
-      { id: 2, type: 'text' as const, content: '✨ Welcome to 28 Degrees! ✨' },
+      { id: 2, type: 'text' as const, content: '✨ Welcome to 28 Degrees West! ✨' },
       { id: 3, type: 'text' as const, content: '🎉 Special Offers Available! 🎉' },
       { id: 4, type: 'text' as const, content: '📞 Contact us for more information' },
     ];
@@ -80,7 +80,7 @@ const SlidingBanner: React.FC = () => {
         {items.map((item) => (
           <React.Fragment key={item.id}>
             {item.type === 'logo' ? (
-              <Logo src={item.content} alt="28 Degrees Logo" />
+              <Logo src={item.content} alt="28 Degrees West Logo" />
             ) : (
               <BannerText>{item.content}</BannerText>
             )}

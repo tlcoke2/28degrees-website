@@ -4,19 +4,19 @@ import { Container, Typography, Box, Card, CardContent, CardMedia, Button, Paper
 const About: React.FC = () => {
   const teamMembers = [
     {
-      name: 'John Smith',
+      name: 'Nikisha Farquarson',
       role: 'Founder & CEO',
       description: 'Passionate about sharing the beauty of Jamaica with the world',
       image: '/assets/images/team/john-smith.jpg',
     },
     {
-      name: 'Sarah Johnson',
+      name: 'Kevin Gordon',
       role: 'Tour Guide',
       description: 'Local expert with extensive knowledge of Jamaican culture',
       image: '/assets/images/team/sarah-johnson.jpg',
     },
     {
-      name: 'Michael Brown',
+      name: 'Thueman Coke',
       role: 'Operations Manager',
       description: 'Ensures smooth operation of all tours and experiences',
       image: '/assets/images/team/michael-brown.jpg',
