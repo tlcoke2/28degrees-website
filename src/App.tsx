@@ -9,6 +9,8 @@ import Contact from './pages/Contact';
 import CheckoutPage from './pages/CheckoutPage';
 import BookingConfirmation from './pages/BookingConfirmation';
 import TestPaymentFlow from './pages/TestPaymentFlow';
+import TestPayment from './pages/TestPayment';
+import TestStripeIntegration from './pages/TestStripeIntegration';
 import SocialFeedPage from './pages/SocialFeedPage';
 import AdminLogin from './pages/admin/Login';
 import Login from './pages/auth/Login';
@@ -104,10 +106,22 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        {/* Test payment route */}
+        {/* Test payment routes */}
         <Route path="/test-payment" element={
           <ProtectedRoute>
             <TestPaymentFlow />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/test-stripe" element={
+          <ProtectedRoute>
+            <TestPayment />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/test-stripe-integration" element={
+          <ProtectedRoute>
+            <TestStripeIntegration />
           </ProtectedRoute>
         } />
         

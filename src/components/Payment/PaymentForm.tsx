@@ -1,82 +1,116 @@
 import { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { StripeCardElementChangeEvent } from '@stripe/stripe-js';
-import { Box, Button, Typography, CircularProgress, Alert } from '@mui/material';
+import type { StripeCardElementChangeEvent, StripeCardElement } from '@stripe/stripe-js';
+import { Box, Button, Typography, CircularProgress, Alert, TextField, Stack } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import { useAuth } from '../../contexts/UserContext';
 
-interface PaymentFormProps {
+type User = {
+  uid: string;
+  email: string | null;
+  getIdToken: () => Promise<string>;
+};
+
+// Define types for our payment form
+type PaymentFormProps = {
   amount: number;
+  currency?: string;
   description: string;
+  metadata?: Record<string, string>;
   onSuccess: (paymentIntentId: string) => void;
   onError?: (error: string) => void;
-}
+};
 
-const CARD_OPTIONS = {
+// Card element styling
+const CARD_ELEMENT_OPTIONS = {
   style: {
     base: {
+      color: '#32325d',
+      fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+      fontSmoothing: 'antialiased',
       fontSize: '16px',
-      color: '#424770',
       '::placeholder': {
         color: '#aab7c4',
       },
     },
     invalid: {
-      color: '#9e2146',
+      color: '#fa755a',
+      iconColor: '#fa755a',
     },
   },
 };
 
+// Main payment form component
 export const PaymentForm = ({
   amount,
+  currency = 'usd',
   description,
+  metadata = {},
   onSuccess,
   onError,
 }: PaymentFormProps) => {
+  const { user } = useAuth() as { user: User | null };
   const [succeeded, setSucceeded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [disabled, setDisabled] = useState(true);
   const [clientSecret, setClientSecret] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const stripe = useStripe();
   const elements = useElements();
   const { enqueueSnackbar } = useSnackbar();
 
+  // Initialize payment intent when component mounts
   useEffect(() => {
-    // Create PaymentIntent as soon as the component mounts
     const createPaymentIntent = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/create-payment-intent`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/payments/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await user?.getIdToken()}`
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             amount: Math.round(amount * 100), // Convert to cents
-            currency: 'usd',
+            currency: currency.toLowerCase(),
             description,
+            metadata: {
+              ...metadata,
+              userId: user?.uid || 'guest',
+              userEmail: user?.email || email,
+            },
           }),
         });
 
-        const data = await response.json();
-        setClientSecret(data.clientSecret);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create payment intent');
+        }
+
+        const { clientSecret } = await response.json();
+        setClientSecret(clientSecret);
       } catch (err) {
         console.error('Error creating payment intent:', err);
-        setError('Failed to initialize payment. Please try again.');
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        onError?.(err instanceof Error ? err.message : 'An error occurred');
       }
     };
 
-    createPaymentIntent();
-  }, [amount, description]);
+    if (amount > 0 && !clientSecret) {
+      createPaymentIntent();
+    }
+  }, [amount, currency, description, metadata, user, email, onError]);
 
-  const handleChange = async (event: StripeCardElementChangeEvent) => {
-    // Listen for changes in the CardElement
-    // and display any errors as the customer types their card details
+  // Handle card input changes
+  const handleCardChange = async (event: StripeCardElementChangeEvent) => {
     setDisabled(event.empty);
-    setError(event.error ? event.error.message : '');
+    setError(event.error ? event.error.message || 'Card details are incomplete' : null);
   };
 
-  const handleSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
+  // Handle form submission
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     
     if (!stripe || !elements) {
       // Stripe.js has not loaded yet
@@ -87,41 +121,46 @@ export const PaymentForm = ({
     setError(null);
 
     try {
+      // Confirm the card payment
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement)!,
+          card: elements.getElement(CardElement) as StripeCardElement,
           billing_details: {
-            // Add any additional billing details here
+            name: name.trim() || 'Guest Customer',
+            email: email.trim() || user?.email || '',
           },
         },
+        receipt_email: email.trim() || user?.email || undefined,
       });
 
       if (stripeError) {
-        throw new Error(stripeError.message);
+        throw new Error(stripeError.message || 'Payment failed');
       }
 
       if (paymentIntent.status === 'succeeded') {
         setSucceeded(true);
-        enqueueSnackbar('Payment successful!', { variant: 'success' });
         onSuccess(paymentIntent.id);
+        
+        // Show success message
+        enqueueSnackbar('Payment successful!', { variant: 'success' });
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+      const errorMessage = err instanceof Error ? err.message : 'Payment failed';
       setError(errorMessage);
-      enqueueSnackbar(errorMessage, { variant: 'error' });
       onError?.(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setProcessing(false);
     }
   };
 
-  if (succeeded) {
-    return (
-      <Box textAlign="center" py={4}>
-        <Typography variant="h6" color="success.main" gutterBottom>
-          Payment Successful!
+  // Render the payment form
+  return (
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
+      <Stack spacing={3}>
+        <Typography variant="h5" component="h2" gutterBottom>
+          Payment Details
         </Typography>
-        <Typography variant="body1">
           Thank you for your payment. Your booking is now confirmed.
         </Typography>
       </Box>
