@@ -1,4 +1,4 @@
-// server.js (Fully Enhanced & Production-Ready for Railway + GitHub Pages Frontend)
+// server.js — Fully Production-Ready for Railway & GitHub Pages
 
 import express from 'express';
 import cors from 'cors';
@@ -19,27 +19,35 @@ import { dirname, join } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables early
+// Load environment variables
 dotenv.config({ path: join(__dirname, '.env.production') });
 
-app.set('trust proxy', 1); // Trust the Railway/Cloudflare proxy
+// ✅ Initialize Express and HTTP server before any awaits
+const app = express();
+const httpServer = createServer(app);
 
-// Import dynamic modules
-let errorHandler;
-let logger;
-let apiRoutes;
+// ✅ Trust reverse proxy (required for Railway, rate-limit, etc.)
+app.set('trust proxy', 1);
 
+// ✅ Import dynamic modules
+let errorHandler, logger, apiRoutes;
 try {
-  errorHandler = (await import('./src/middleware/error.middleware.js')).errorHandler;
-  logger = (await import('./src/utils/logger.js')).logger;
-  apiRoutes = (await import('./src/routes/api.routes.js')).default;
+  const errorModule = await import('./src/middleware/error.middleware.js');
+  errorHandler = errorModule.errorHandler;
+
+  const loggerModule = await import('./src/utils/logger.js');
+  logger = loggerModule.default;
+
+  const apiRoutesModule = await import('./src/routes/api.routes.js');
+  apiRoutes = apiRoutesModule.default;
+
   console.log('✅ Core modules loaded successfully');
 } catch (err) {
   console.error('❌ Failed to load core modules:', err);
   process.exit(1);
 }
 
-// Sentry Initialization (optional)
+// ✅ Sentry Initialization (optional)
 try {
   if (process.env.SENTRY_DSN) {
     const { initSentry } = await import('./src/utils/sentry.js');
@@ -51,33 +59,27 @@ try {
   console.warn('⚠️ Sentry init failed:', err.message);
 }
 
-// Express App and HTTP Server
-const app = express();
-const httpServer = createServer(app);
-
-// WebSocket Initialization
+// ✅ WebSocket Setup
 try {
   const { initWebSocket } = await import('./src/services/websocket.service.js');
   initWebSocket(httpServer);
   console.log('✅ WebSocket service initialized');
-} catch (error) {
-  console.warn('⚠️ WebSocket service failed:', error.message);
+} catch (err) {
+  console.warn('⚠️ WebSocket service failed:', err.message);
 }
 
-// Middleware Setup
+// ✅ Security & Middleware Setup
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.NODE_ENV === 'production'
-      ? [
-          'https://28degreeswest.com',
-          'https://www.28degreeswest.com',
-          'https://admin.28degreeswest.com'
-        ]
-      : '*',
-    credentials: true
-  })
-);
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? [
+        'https://28degreeswest.com',
+        'https://www.28degreeswest.com',
+        'https://admin.28degreeswest.com'
+      ]
+    : '*',
+  credentials: true
+}));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
@@ -85,25 +87,13 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 app.use(compression());
-app.use(
-  rateLimit({
-    max: 100,
-    windowMs: 60 * 60 * 1000,
-    message: 'Too many requests, try again later.'
-  })
-);
+app.use(rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
+}));
 
-// API Routes
-app.use('/api/v1', apiRoutes);
-
-// Catch-all for undefined API routes
-app.all('*', (req, res) => {
-  res.status(404).json({
-    status: 'fail',
-    message: `Can't find ${req.originalUrl} on this server!`
-  });
-});
-
+// ✅ Root route (GET /)
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'success',
@@ -113,13 +103,24 @@ app.get('/', (req, res) => {
   });
 });
 
-// Global Error Handler
+// ✅ Primary API routes
+app.use('/api/v1', apiRoutes);
+
+// ✅ Fallback 404 route
+app.all('*', (req, res) => {
+  res.status(404).json({
+    status: 'fail',
+    message: `Can't find ${req.originalUrl} on this server!`
+  });
+});
+
+// ✅ Global error handler
 app.use((err, req, res, next) => {
   console.error('🔥 Error:', err);
   errorHandler(err, req, res, next);
 });
 
-// Start MongoDB & Server
+// ✅ Connect to MongoDB and Start Server
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
@@ -143,8 +144,9 @@ const startServer = async () => {
   }
 };
 
+// ✅ Handle unhandled rejections
 process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! 💥', err);
+  console.error('UNHANDLED REJECTION 💥:', err);
   process.exit(1);
 });
 
