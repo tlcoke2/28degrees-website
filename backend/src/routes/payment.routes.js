@@ -1,6 +1,8 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/auth.middleware.js';
+import { sendMail } from '../utils/mailer.js';
+import { bookingConfirmedTemplate } from '../templates/email/booking-confirmed.js';
 
 const router = express.Router();
 
@@ -143,40 +145,149 @@ router.post('/checkout-session', async (req, res) => {
 
 /** ---------- Webhook (must be raw; mount before JSON body parser) ---------- **/
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // IMPORTANT: Do not put express.json() before this route
   try {
     const stripe = getStripeClient();
     const endpointSecret = requireEnv('STRIPE_WEBHOOK_SECRET');
     const sig = req.headers['stripe-signature'];
+
+    if (!sig) {
+      console.error('Missing Stripe signature header');
+      return res.status(400).send('Missing Stripe signature');
+    }
 
     let event;
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
+      // 400 tells Stripe to retry (useful if transient)
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    // Acknowledge ASAP; process side effects safely after switch if you prefer.
+    // For clarity, we await inline here and return at the end.
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        // session.metadata has tourId, quantity, date, etc.
-        // TODO: mark booking as paid, create booking record, email customer, etc.
-        console.log('Checkout completed:', session.id);
+
+        // Extract key fields
+        const email =
+          session.customer_details?.email ||
+          session.metadata?.customerEmail ||
+          null;
+
+        const customerName =
+          session.customer_details?.name ||
+          session.metadata?.customerName ||
+          '';
+
+        const itemId =
+          session.metadata?.itemId ||
+          session.metadata?.tourId ||
+          '';
+
+        const itemName =
+          session.metadata?.itemName ||
+          (itemId ? `Booking ${itemId}` : 'Booking');
+
+        const quantity = Number(session.metadata?.quantity || 1);
+        const date = session.metadata?.date || '';
+        const amountTotal = session.amount_total || 0;  // cents
+        const currency = session.currency || 'usd';
+        const bookingRef = session.id;
+        const appBaseUrl = process.env.APP_BASE_URL || '';
+
+        try {
+          // TODO (idempotent): Persist booking in DB.
+          // Use bookingRef/session.id as a unique key to avoid duplicates on retries.
+          // Example (Prisma):
+          // await prisma.booking.upsert({
+          //   where: { stripeSessionId: bookingRef },
+          //   update: { status: 'paid' },
+          //   create: {
+          //     stripeSessionId: bookingRef,
+          //     itemId,
+          //     itemName,
+          //     quantity,
+          //     date,
+          //     email,
+          //     totalCents: amountTotal,
+          //     currency,
+          //     status: 'paid'
+          //   }
+          // });
+
+          // Send confirmation email (if we have an email)
+          if (email) {
+            const html = bookingConfirmedTemplate({
+              customerName,
+              itemName,
+              itemId,
+              quantity,
+              date,
+              currency,
+              amountTotal,
+              bookingRef,
+              appBaseUrl,
+            });
+
+            await sendMail({
+              to: email,
+              subject: 'Your 28 Degrees West booking is confirmed',
+              html,
+            });
+
+            // Optional: BCC ops mailbox
+            if (process.env.BCC_BOOKINGS_EMAIL) {
+              await sendMail({
+                to: process.env.BCC_BOOKINGS_EMAIL,
+                subject: `Booking confirmed: ${bookingRef} — ${itemName}`,
+                html,
+              });
+            }
+          }
+
+          console.log('✔️  Checkout completed processed:', bookingRef, '->', email || 'no-email');
+        } catch (postErr) {
+          // Don’t fail the webhook acknowledgement if side-effects fail.
+          console.error('Post-payment processing failed:', postErr);
+        }
+
         break;
       }
+
       case 'payment_intent.succeeded': {
         const pi = event.data.object;
         console.log('PaymentIntent succeeded:', pi.id);
-        // If you use PaymentIntents directly, finalize booking here
+        // If you support a PI-only flow, finalize booking here similarly.
         break;
       }
+
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object;
+        console.log('Async payment succeeded:', session.id);
+        // Optionally mirror the same post-payment steps as above.
+        break;
+      }
+
+      case 'checkout.session.expired':
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object;
+        console.warn('Checkout did not complete:', event.type, session.id);
+        // Optionally mark holds/reservations as released.
+        break;
+      }
+
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
+    // 200 tells Stripe we received the event; do not return 500 unless truly unrecoverable.
     return res.json({ received: true });
   } catch (err) {
     console.error('Webhook handler error:', err);
+    // 500 here causes Stripe to retry; only do this if verification succeeded but your core logic truly failed.
     return res.status(500).send('Webhook handler error');
   }
 });

@@ -1,4 +1,4 @@
-// server.js — Production-ready for Railway & GitHub Pages
+// server.js — Production-ready for Railway & GitHub Pages (ESM)
 
 import express from 'express';
 import cors from 'cors';
@@ -13,7 +13,11 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
+
+// Routers that must be available early
+import paymentsRouter from './src/routes/payment.routes.js';
+import bookingsRouter from './src/routes/booking.routes.js';
 
 // ----------------------------------------------------
 // Paths & env
@@ -85,7 +89,7 @@ try {
 }
 
 // ----------------------------------------------------
-// Security & middleware
+// Security & global middleware (order matters)
 // ----------------------------------------------------
 app.use(helmet());
 
@@ -99,9 +103,9 @@ const prodAllowed = [
   'https://28degreeswest.com',
   'https://www.28degreeswest.com',
   'https://admin.28degreeswest.com',
+  // Add your GH Pages origin explicitly if used, e.g.:
+  // 'https://trillion25.github.io'
 ];
-// You can add your GH Pages origin explicitly, e.g.:
-// prodAllowed.push('https://trillion25.github.io');
 
 const corsOptions = {
   credentials: true,
@@ -120,11 +124,19 @@ const corsOptions = {
       prodAllowed.includes(origin) ||
       /https:\/\/[a-z0-9-]+\.github\.io$/i.test(origin);
 
-    return allowed ? cb(null, true) : cb(new Error('CORS Not Allowed'));
+    return allowed ? cb(null, true) : cb(new Error('Not allowed by CORS'));
   },
 };
 app.use(cors(corsOptions));
 
+/**
+ * IMPORTANT: Mount the payments router BEFORE any body parser,
+ * so its `/webhook` route (which uses express.raw) can verify signatures.
+ * CORS is already applied above, so /payments has CORS headers too.
+ */
+app.use('/api/v1/payments', paymentsRouter);
+
+// Now JSON/urlencoded parsers for the rest of the app
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
@@ -139,9 +151,7 @@ app.use(
   compression({
     filter: (req, res) => {
       const type = res.getHeader('Content-Type');
-      if (type && String(type).includes('text/event-stream')) {
-        return false;
-      }
+      if (type && String(type).includes('text/event-stream')) return false;
       return compression.filter(req, res);
     },
   })
@@ -172,7 +182,7 @@ app.get(['/health', '/api/v1/health'], (_req, res) => {
 
 // ----------------------------------------------------
 // Root (optional)
-/// ---------------------------------------------------
+// ----------------------------------------------------
 app.get('/', (_req, res) => {
   res.status(200).json({
     status: 'success',
@@ -183,9 +193,9 @@ app.get('/', (_req, res) => {
 });
 
 // ----------------------------------------------------
-// Routes
+// Business Routers
 // ----------------------------------------------------
-// Admin auth (login/me/logout)
+// User/admin auth
 app.use('/api/v1/admin/auth', adminAuthRoutes);
 
 // AI streaming (SSE endpoint and POST alternative)
@@ -193,6 +203,9 @@ app.use('/api/v1/ai', aiRoutes);
 
 // Primary API
 app.use('/api/v1', apiRoutes);
+
+// Bookings (requires JSON parser, so mounted after parsers)
+app.use('/api/v1/bookings', bookingsRouter);
 
 // 404
 app.all('*', (req, res) => {
@@ -216,16 +229,12 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) {
-      throw new Error('MONGODB_URI is not set');
-    }
+    if (!mongoUri) throw new Error('MONGODB_URI is not set');
 
     logger.info?.('🔍 Connecting to MongoDB...');
     await mongoose.connect(mongoUri, {
-      // modern mongoose ignores these but safe if older
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      connectTimeoutMS: 10000,
+      // Modern Mongoose (v7+) — no deprecated flags
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
     logger.info?.('✅ Connected to MongoDB');
@@ -261,3 +270,4 @@ process.on('unhandledRejection', (err) => {
 startServer();
 
 export default app;
+
