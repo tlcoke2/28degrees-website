@@ -1,127 +1,184 @@
 import express from 'express';
-import { Router } from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/auth.middleware.js';
 
-const router = Router();
+const router = express.Router();
 
-// Function to get or initialize the Stripe client
+/** ---------- Helpers ---------- **/
+
+function requireEnv(name) {
+  const v = process.env[name];
+  if (!v) throw new Error(`${name} is not defined`);
+  return v;
+}
+
 function getStripeClient() {
-  // Check if environment variable is available
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('❌ STRIPE_SECRET_KEY is not defined in environment variables');
-    throw new Error('Stripe secret key is not configured');
-  }
-  
-  // Log that we're initializing Stripe (without exposing the key)
-  console.log('Initializing Stripe client with key:', '***' + process.env.STRIPE_SECRET_KEY.slice(-4));
-  
-  // Create and return a new Stripe client
-  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+  const key = requireEnv('STRIPE_SECRET_KEY');
+  // Avoid logging secrets in prod; if you must, only tail:
+  // console.log('Stripe init: ****' + key.slice(-4));
+  return new Stripe(key, {
     apiVersion: '2023-10-16',
     maxNetworkRetries: 3,
     timeout: 10000,
   });
 }
 
-// Middleware to ensure Stripe client is available
-const withStripeClient = (req, res, next) => {
-  try {
-    // Get or create a new Stripe client for each request
-    req.stripe = getStripeClient();
-    next();
-  } catch (error) {
-    console.error('❌ Failed to initialize Stripe client:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Payment service is currently unavailable',
-      error: error.message 
-    });
-  }
-};
-
 /**
- * @route   POST /api/v1/payments/create-payment-intent
- * @desc    Create a payment intent for a booking
- * @access  Private
+ * Resolve pricing on the server. Replace this stub with a DB lookup.
+ * Return the price in the smallest unit (cents).
  */
-router.post('/create-payment-intent', protect, withStripeClient, async (req, res) => {
+async function resolveTourPriceCents(tourId) {
+  // TODO: fetch from DB by tourId
+  // Example fallback (replace): 99.00 USD
+  return 9900;
+}
+
+function parseQuantity(n) {
+  const q = Number(n);
+  return Number.isFinite(q) && q >= 1 ? Math.floor(q) : 1;
+}
+
+/** ---------- Create PaymentIntent (optional/kept) ---------- **/
+router.post('/create-payment-intent', protect, async (req, res) => {
   try {
-    const { amount, currency = 'usd', metadata = {} } = req.body;
+    const stripe = getStripeClient();
 
-    // Validate amount
-    if (!amount || isNaN(amount)) {
-      return res.status(400).json({ error: 'A valid amount is required' });
-    }
+    const { tourId, quantity = 1, currency = 'usd', metadata = {}, amountCents } = req.body;
 
-    // Create a PaymentIntent with the order amount and currency
-    const paymentIntent = await req.stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency,
-      metadata: {
-        ...metadata,
-        userId: req.user.id,
-      },
-      // Enable automatic payment methods
-      automatic_payment_methods: {
-        enabled: true,
-      },
+    if (!tourId) return res.status(400).json({ error: 'tourId is required' });
+
+    const qty = parseQuantity(quantity);
+
+    // Prefer server-computed pricing; only fall back to amountCents if explicitly allowed.
+    const unitPrice = amountCents && Number.isFinite(Number(amountCents))
+      ? Number(amountCents)
+      : await resolveTourPriceCents(tourId);
+
+    const totalCents = unitPrice * qty;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: totalCents, // already in cents
+      currency: String(currency || 'usd').toLowerCase(),
+      metadata: { ...metadata, tourId, quantity: String(qty) },
+      automatic_payment_methods: { enabled: true },
+    }, {
+      idempotencyKey: req.get('Idempotency-Key') || undefined,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       clientSecret: paymentIntent.client_secret,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    res.status(500).json({ 
-      error: 'Failed to create payment intent',
-      details: error.message 
-    });
+    return res.status(500).json({ error: 'Failed to create payment intent' });
   }
 });
 
-/**
- * @route   POST /api/v1/payments/webhook
- * @desc    Handle Stripe webhook events
- * @access  Public (Stripe needs to access this endpoint)
- */
-router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event;
-
+/** ---------- Create Checkout Session (new, matches your frontend) ---------- **/
+router.post('/checkout-session', async (req, res) => {
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      endpointSecret
-    );
+    const stripe = getStripeClient();
+
+    const {
+      tourId,
+      quantity = 1,
+      date, // yyyy-mm-dd
+      customerInfo = {},
+      metadata = {},
+      currency = 'usd',
+    } = req.body;
+
+    if (!tourId) return res.status(400).json({ error: 'tourId is required' });
+    const qty = parseQuantity(quantity);
+    const unitPrice = await resolveTourPriceCents(tourId);
+    const totalCents = unitPrice * qty;
+
+    const APP_BASE_URL = requireEnv('APP_BASE_URL'); // e.g., https://28degreeswest.com
+    const successUrl = `${APP_BASE_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl  = `${APP_BASE_URL}/payment/cancel`;
+
+    // Prefer server-controlled product/price descriptors
+    const lineItems = [{
+      price_data: {
+        currency: String(currency || 'usd').toLowerCase(),
+        product_data: {
+          name: `Tour #${tourId}`,
+          // You can add description, images here
+        },
+        unit_amount: unitPrice, // cents
+      },
+      quantity: qty,
+    }];
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: lineItems,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        ...metadata,
+        tourId,
+        date: date || '',
+        quantity: String(qty),
+        customerName: customerInfo?.name || '',
+        customerEmail: customerInfo?.email || '',
+        customerPhone: customerInfo?.phone || '',
+      },
+      // Automatic tax, address collection if needed:
+      // automatic_tax: { enabled: true },
+      // customer_creation: 'if_required',
+    }, {
+      idempotencyKey: req.get('Idempotency-Key') || undefined,
+    });
+
+    // Frontend expects { url } or { checkoutUrl }
+    return res.status(200).json({ url: session.url });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    return res.status(500).json({ error: 'Failed to start checkout session' });
+  }
+});
+
+/** ---------- Webhook (must be raw; mount before JSON body parser) ---------- **/
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const stripe = getStripeClient();
+    const endpointSecret = requireEnv('STRIPE_WEBHOOK_SECRET');
+    const sig = req.headers['stripe-signature'];
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        // session.metadata has tourId, quantity, date, etc.
+        // TODO: mark booking as paid, create booking record, email customer, etc.
+        console.log('Checkout completed:', session.id);
+        break;
+      }
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object;
+        console.log('PaymentIntent succeeded:', pi.id);
+        // If you use PaymentIntents directly, finalize booking here
+        break;
+      }
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    return res.json({ received: true });
   } catch (err) {
-    console.error(`Webhook Error: ${err.message}`);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error('Webhook handler error:', err);
+    return res.status(500).send('Webhook handler error');
   }
-
-  // Handle the event
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      const paymentIntent = event.data.object;
-      console.log('PaymentIntent was successful!', paymentIntent.id);
-      // TODO: Update your database here
-      break;
-    case 'payment_method.attached':
-      const paymentMethod = event.data.object;
-      console.log('PaymentMethod was attached!', paymentMethod.id);
-      break;
-    // ... handle other event types
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-
-  // Return a 200 response to acknowledge receipt of the event
-  res.json({ received: true });
 });
 
 export default router;

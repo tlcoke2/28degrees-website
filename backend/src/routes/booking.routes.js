@@ -6,8 +6,6 @@ import {
   createBooking,
   updateBooking,
   deleteBooking,
-  getCheckoutSession,
-  webhookCheckout,
   cancelBooking,
   getBookingStats,
 } from '../controllers/booking.controller.js';
@@ -15,15 +13,13 @@ import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// Webhook route - must come before body parser
-router.post('/webhook-checkout', express.raw({ type: 'application/json' }), webhookCheckout);
+// NOTE: No webhook or checkout routes here. Those live in /routes/payments.routes.js
 
-// Protect all routes after this middleware
+// All booking routes require auth (adjust if you need public reads)
 router.use(protect);
 
 // User routes
 router.get('/my-bookings', getMyBookings);
-router.post('/checkout-session/:tourId', getCheckoutSession);
 router.patch('/:id/cancel', cancelBooking);
 
 // Admin routes
@@ -40,7 +36,7 @@ router
   .patch(updateBooking)
   .delete(deleteBooking);
 
-// Stats route
+// Stats
 router.get('/booking-stats', getBookingStats);
 
 export default router;
