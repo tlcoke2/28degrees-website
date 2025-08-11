@@ -14,6 +14,7 @@ import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import connectDB from './src/config/database.js';
 
 // Routers that must be available early
 import paymentsRouter from './src/routes/payment.routes.js';
@@ -37,7 +38,7 @@ const httpServer = createServer(app);
 
 // Trust reverse proxies (Railway / Cloudflare)
 app.set('trust proxy', 1);
-
+connectDB();
 // ----------------------------------------------------
 // Dynamic imports (non-blocking startup)
 // ----------------------------------------------------
