@@ -1,9 +1,11 @@
 // server.js — Production-ready for Railway & GitHub Pages (ESM)
 
+// Load env FIRST so all downstream imports see variables
+import 'dotenv/config';
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -14,21 +16,18 @@ import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import connectDB from './src/config/database.js';
 
 // Routers that must be available early
+// NOTE: filename is plural: payments.routes.js
 import paymentsRouter from './src/routes/payment.routes.js';
 import bookingsRouter from './src/routes/booking.routes.js';
 import catalogRouter from './src/routes/catalog.routes.js';
 
 // ----------------------------------------------------
-// Paths & env
+// Paths
 // ----------------------------------------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Load .env if present (Railway injects env automatically)
-dotenv.config();
 
 // ----------------------------------------------------
 // App & server
@@ -38,7 +37,7 @@ const httpServer = createServer(app);
 
 // Trust reverse proxies (Railway / Cloudflare)
 app.set('trust proxy', 1);
-connectDB();
+
 // ----------------------------------------------------
 // Dynamic imports (non-blocking startup)
 // ----------------------------------------------------
@@ -76,7 +75,7 @@ try {
     logger.info?.('ℹ️ Sentry not configured');
   }
 } catch (err) {
-  logger.warn?.('⚠️ Sentry init failed: ' + err.message);
+  logger?.warn?.('⚠️ Sentry init failed: ' + err.message);
 }
 
 // ----------------------------------------------------
@@ -87,27 +86,32 @@ try {
   initWebSocket(httpServer);
   logger.info?.('✅ WebSocket service initialized');
 } catch (err) {
-  logger.warn?.('⚠️ WebSocket service failed: ' + err.message);
+  logger?.warn?.('⚠️ WebSocket service failed: ' + err.message);
 }
 
 // ----------------------------------------------------
 // Security & global middleware (order matters)
 // ----------------------------------------------------
-app.use(helmet());
+app.use(
+  helmet({
+    // Allow cross-origin API usage (don’t block with CORP)
+    crossOriginResourcePolicy: false,
+  })
+);
 
 /**
  * CORS:
  * - Allow your production domains
- * - Allow GH Pages (your org or repo page)
+ * - Allow GH Pages (if used)
  * - Allow localhost in non-production
  */
-const prodAllowed = [
+const prodAllowed = new Set([
   'https://28degreeswest.com',
   'https://www.28degreeswest.com',
   'https://admin.28degreeswest.com',
-  // Add your GH Pages origin explicitly if used, e.g.:
-  // 'https://trillion25.github.io'
-];
+  // Add GH Pages origin explicitly if you use it:
+  // 'https://<your-username>.github.io',
+]);
 
 const corsOptions = {
   credentials: true,
@@ -116,27 +120,35 @@ const corsOptions = {
     if (!origin) return cb(null, true);
 
     const isProd = process.env.NODE_ENV === 'production';
-    if (!isProd) {
-      // In dev, allow anything
-      return cb(null, true);
-    }
+    if (!isProd) return cb(null, true);
 
-    // In prod, allow if in the allowlist or a *.github.io page you explicitly trust
     const allowed =
-      prodAllowed.includes(origin) ||
-      /https:\/\/[a-z0-9-]+\.github\.io$/i.test(origin);
+      prodAllowed.has(origin) || /^https:\/\/[a-z0-9-]+\.github\.io$/i.test(origin);
 
     return allowed ? cb(null, true) : cb(new Error('Not allowed by CORS'));
   },
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 };
+
+// ✅ CORS FIRST (so all routes, including /payments, get headers)
 app.use(cors(corsOptions));
+// ✅ Explicit preflight
+app.options('*', cors(corsOptions));
 
 /**
  * IMPORTANT: Mount the payments router BEFORE any body parser,
  * so its `/webhook` route (which uses express.raw) can verify signatures.
- * CORS is already applied above, so /payments has CORS headers too.
  */
 app.use('/api/v1/payments', paymentsRouter);
+
+// You can mount catalog either here or after parsers (it uses JSON). Both are fine.
 app.use('/api/v1/catalog', catalogRouter);
 
 // Now JSON/urlencoded parsers for the rest of the app
@@ -236,7 +248,7 @@ const startServer = async () => {
 
     logger.info?.('🔍 Connecting to MongoDB...');
     await mongoose.connect(mongoUri, {
-      // Modern Mongoose (v7+) — no deprecated flags
+      // Modern Mongoose (v7+)
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
@@ -273,4 +285,5 @@ process.on('unhandledRejection', (err) => {
 startServer();
 
 export default app;
+
 
