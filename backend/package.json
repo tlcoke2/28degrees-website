@@ -17,7 +17,8 @@
     "test:e2e": "mocha --config .mocharc.cjs test-end-to-end.js",
     "test:stripe": "mocha --config .mocharc.cjs test-stripe-integration.js",
     "seed": "node src/utils/seedDatabase.js",
-    "seed:test": "npm run seed && npm run test:seeder"
+    "seed:test": "npm run seed && npm run test:seeder",
+	"seed:catalog": "node scripts/seed-catalog.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

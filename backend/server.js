@@ -18,6 +18,7 @@ import { dirname } from 'path';
 // Routers that must be available early
 import paymentsRouter from './src/routes/payment.routes.js';
 import bookingsRouter from './src/routes/booking.routes.js';
+import catalogRouter from './src/routes/catalog.routes.js';
 
 // ----------------------------------------------------
 // Paths & env
@@ -135,6 +136,7 @@ app.use(cors(corsOptions));
  * CORS is already applied above, so /payments has CORS headers too.
  */
 app.use('/api/v1/payments', paymentsRouter);
+app.use('/api/v1/catalog', catalogRouter);
 
 // Now JSON/urlencoded parsers for the rest of the app
 app.use(express.json({ limit: '10kb' }));
