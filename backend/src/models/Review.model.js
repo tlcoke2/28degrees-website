@@ -1,36 +1,38 @@
+// src/models/Review.model.js
 import mongoose from 'mongoose';
+
+const DEFAULT_AVG = 4.5;
 
 const reviewSchema = new mongoose.Schema(
   {
     review: {
       type: String,
-      required: [true, 'Review cannot be empty!'],
+      required: [true, 'Review cannot be empty'],
       trim: true,
-      maxlength: [1000, 'A review must have less or equal than 1000 characters'],
-      minlength: [10, 'A review must have more or equal than 10 characters'],
+      minlength: [10, 'A review must be at least 10 characters'],
+      maxlength: [1000, 'A review must be at most 1000 characters'],
     },
     rating: {
       type: Number,
-      min: 1,
-      max: 5,
       required: [true, 'A review must have a rating'],
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+      min: [1, 'Rating must be at least 1'],
+      max: [5, 'Rating must be at most 5'],
     },
     tour: {
-      type: mongoose.Schema.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'Tour',
-      required: [true, 'Review must belong to a tour.'],
+      required: [true, 'Review must belong to a tour'],
+      index: true,
     },
     user: {
-      type: mongoose.Schema.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Review must belong to a user'],
+      index: true,
     },
   },
   {
+    timestamps: true,                // createdAt, updatedAt
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
@@ -39,21 +41,19 @@ const reviewSchema = new mongoose.Schema(
 // Prevent duplicate reviews from the same user on the same tour
 reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
 
-// Populate user and tour when querying reviews
+/* ---------------------------- Auto-population ---------------------------- */
+// Keep population lightweight to avoid large payloads
 reviewSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: 'user',
-    select: 'name photo',
-  });
+  this.populate({ path: 'user', select: 'name photo' });
   next();
 });
 
-// Static method to calculate average ratings for a tour
+/* ------------------------- Ratings aggregation --------------------------- */
 reviewSchema.statics.calcAverageRatings = async function (tourId) {
+  if (!tourId) return;
+
   const stats = await this.aggregate([
-    {
-      $match: { tour: tourId },
-    },
+    { $match: { tour: new mongoose.Types.ObjectId(tourId) } },
     {
       $group: {
         _id: '$tour',
@@ -63,32 +63,28 @@ reviewSchema.statics.calcAverageRatings = async function (tourId) {
     },
   ]);
 
-  if (stats.length > 0) {
-    await mongoose.model('Tour').findByIdAndUpdate(tourId, {
-      ratingsQuantity: stats[0].nRating,
-      ratingsAverage: stats[0].avgRating,
-    });
-  } else {
-    await mongoose.model('Tour').findByIdAndUpdate(tourId, {
-      ratingsQuantity: 0,
-      ratingsAverage: 4.5, // Default value
-    });
-  }
+  const payload =
+    stats.length > 0
+      ? { ratingsQuantity: stats[0].nRating, ratingsAverage: stats[0].avgRating }
+      : { ratingsQuantity: 0, ratingsAverage: DEFAULT_AVG };
+
+  // Best-effort update; don't throw if tour missing
+  await mongoose.model('Tour').findByIdAndUpdate(tourId, payload, {
+    new: false,
+    runValidators: false,
+  }).lean();
 };
 
-// Update tour ratings when a new review is created
+// Recompute ratings after create
 reviewSchema.post('save', function () {
-  // this points to current review
   this.constructor.calcAverageRatings(this.tour);
 });
 
-// Update tour ratings when a review is updated or deleted
+// Recompute ratings after update/delete via findOneAnd* operations
 reviewSchema.post(/^findOneAnd/, async function (doc) {
   if (doc) {
     await doc.constructor.calcAverageRatings(doc.tour);
   }
 });
 
-const Review = mongoose.model('Review', reviewSchema);
-
-export default Review;
+export default mongoose.models.Review || mongoose.model('Review', reviewSchema);

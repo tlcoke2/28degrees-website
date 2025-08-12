@@ -1,93 +1,126 @@
+// src/models/Booking.js
 import mongoose from 'mongoose';
 
-const bookingSchema = new mongoose.Schema({
-  tour: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'Tour',
-    required: [true, 'Booking must belong to a Tour!']
-  },
-  user: {
-    type: mongoose.Schema.ObjectId,
-    ref: 'User',
-    required: [true, 'Booking must belong to a User!']
-  },
-  price: {
-    type: Number,
-    required: [true, 'Booking must have a price.']
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now()
-  },
-  paid: {
-    type: Boolean,
-    default: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'paid', 'cancelled', 'completed'],
-    default: 'pending'
-  },
-  participants: {
-    type: Number,
-    required: [true, 'Booking must have number of participants'],
-    min: [1, 'Booking must have at least 1 participant']
-  },
-  startDate: {
-    type: Date,
-    required: [true, 'Booking must have a start date']
-  },
-  paymentMethod: {
-    type: String,
-    enum: ['credit_card', 'paypal', 'stripe'],
-    required: [true, 'Please provide a payment method']
-  },
-  paymentIntentId: {
-    type: String,
-    required: [function() { 
-      return this.paymentMethod === 'stripe'; 
-    }, 'Payment intent ID is required for Stripe payments']
-  },
-  receiptUrl: String
-}, {
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+const BookingSchema = new mongoose.Schema(
+  {
+    /* ---------- Stripe / payment-first fields ---------- */
+    stripeSessionId: { type: String, index: true, unique: true, sparse: true }, // idempotency for webhooks
+    paymentIntentId: { type: String, index: true, sparse: true },
 
-// Prevent duplicate bookings
-bookingSchema.index({ tour: 1, user: 1 }, { unique: true });
+    // Contact / customer (copied from Stripe metadata or customer_details)
+    email: { type: String, index: true },
+    customerName: { type: String },
+    customerPhone: { type: String },
 
-// Populate tour and user automatically when querying
-bookingSchema.pre(/^find/, function(next) {
-  this.populate('user').populate({
+    // Item booked (tour/product identifier from your catalog)
+    itemId: { type: String, index: true },   // e.g., tourId or SKU
+    itemName: { type: String },
+
+    // Quantities / dates (string date from UI; legacy Date field also supported below)
+    quantity: { type: Number, default: 1, min: 1 },
+    date: { type: String }, // 'YYYY-MM-DD' as sent by the frontend
+
+    // Money
+    totalCents: { type: Number, default: 0, min: 0 },
+    currency: { type: String, default: 'usd' },
+
+    // Status lifecycle (union of legacy + Stripe states)
+    status: {
+      type: String,
+      enum: ['pending', 'paid', 'expired', 'failed', 'refunded', 'canceled', 'cancelled', 'completed'],
+      default: 'pending',
+      index: true,
+    },
+
+    // Arbitrary extra info from the request/checkout session
+    metadata: { type: mongoose.Schema.Types.Mixed },
+
+    /* ---------- Legacy relations / compatibility ---------- */
+    tour: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    // Legacy price (major units) kept for compatibility; prefer totalCents above
+    price: { type: Number, min: 0 },
+
+    // Legacy participation & schedule
+    participants: { type: Number, min: 1 },
+    startDate: { type: Date },
+
+    // Legacy payment fields
+    paymentMethod: { type: String, enum: ['credit_card', 'paypal', 'stripe'], default: 'stripe' },
+    receiptUrl: { type: String },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+/* ------------------------------- Indexes --------------------------------- */
+
+// Prevent duplicate Stripe upserts
+// (unique + sparse so docs without session id are allowed)
+BookingSchema.index({ stripeSessionId: 1 }, { unique: true, sparse: true });
+
+// Prevent duplicate tour booking by the same user on the same date — only when all exist
+BookingSchema.index(
+  { tour: 1, user: 1, startDate: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { tour: { $exists: true }, user: { $exists: true }, startDate: { $exists: true } },
+  }
+);
+
+/* ---------------------------- Auto-population ---------------------------- */
+
+BookingSchema.pre(/^find/, function (next) {
+  // Best-effort populate; cheap selects only
+  this.populate({ path: 'user', select: 'name email role' }).populate({
     path: 'tour',
-    select: 'name'
+    select: 'name',
   });
   next();
 });
 
-// Static method to check if a tour is booked for a specific date
-bookingSchema.statics.isTourBooked = async function(tourId, startDate) {
+/* ------------------------------- Statics --------------------------------- */
+
+// Check if a tour is already booked on a given calendar day (legacy helper)
+BookingSchema.statics.isTourBooked = async function (tourId, startDate) {
+  if (!tourId || !startDate) return false;
+  const dayStart = new Date(startDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(startDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
   const booking = await this.findOne({
     tour: tourId,
-    startDate: {
-      $gte: new Date(startDate).setHours(0, 0, 0, 0),
-      $lt: new Date(startDate).setHours(23, 59, 59, 999)
-    },
-    status: { $ne: 'cancelled' }
-  });
+    startDate: { $gte: dayStart, $lt: dayEnd },
+    status: { $nin: ['canceled', 'cancelled'] },
+  }).lean();
+
   return !!booking;
 };
 
-// Calculate price on save
-bookingSchema.pre('save', async function(next) {
-  if (this.isNew) {
-    const tour = await mongoose.model('Tour').findById(this.tour);
-    this.price = tour.price * this.participants;
-  }
-  next();
-});
+/* ------------------------------ Pre-save hook ---------------------------- */
+/**
+ * Legacy price calculator (optional):
+ * If legacy `tour` + `participants` are provided and `price` is not set,
+ * you could derive `price` from Tour here. We avoid doing a DB round-trip
+ * by default; the Stripe flow already sets `totalCents`.
+ *
+ * Uncomment if you want legacy auto-pricing:
+ *
+ * BookingSchema.pre('save', async function (next) {
+ *   if (this.isNew && this.tour && this.participants && !this.price) {
+ *     const Tour = mongoose.model('Tour');
+ *     const tour = await Tour.findById(this.tour).select('price').lean();
+ *     if (tour?.price) this.price = tour.price * this.participants;
+ *   }
+ *   next();
+ * });
+ */
 
-const Booking = mongoose.model('Booking', bookingSchema);
+/* --------------------------------- Export -------------------------------- */
 
-export default Booking;
+export default mongoose.models.Booking || mongoose.model('Booking', BookingSchema);

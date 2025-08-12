@@ -12,6 +12,9 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
 
+// --- Models (for bootstrapping admin)
+import User from './src/models/User.model.js';
+
 // --- Routers (ensure filenames are correct)
 import paymentsRouter from './src/routes/payment.routes.js';     // normal payment routes (NO webhook here)
 import catalogRouter from './src/routes/catalog.routes.js';
@@ -170,12 +173,58 @@ async function connectMongo() {
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
+
+    // Seed/ensure default admin as soon as DB is online
+    await ensureDefaultAdmin();
+
     dbReady = true;
     (logger || console).info?.('✅ MongoDB connected');
   } catch (err) {
     dbReady = false;
     (logger || console).error?.('❌ MongoDB connection failed:', err);
     setTimeout(connectMongo, 5000); // retry
+  }
+}
+
+/**
+ * Ensure a default Administrator exists.
+ * Uses ADMIN_EMAIL and ADMIN_PASSWORD env vars.
+ * - Creates the admin if missing
+ * - Promotes the existing user at that email to role 'admin'
+ * This empowers the admin to update/remove all site content wherever
+ * your routers use `authorize('admin')`.
+ */
+async function ensureDefaultAdmin() {
+  try {
+    const emailEnv = process.env.ADMIN_EMAIL;
+    const passwordEnv = process.env.ADMIN_PASSWORD;
+
+    if (!emailEnv || !passwordEnv) {
+      (logger || console).warn?.('⚠️  Skipping admin bootstrap: ADMIN_EMAIL or ADMIN_PASSWORD not set');
+      return;
+    }
+
+    const email = String(emailEnv).trim().toLowerCase();
+    let admin = await User.findOne({ email }).select('_id role');
+
+    if (!admin) {
+      admin = await User.create({
+        name: 'Administrator',
+        email,
+        password: passwordEnv,
+        passwordConfirm: passwordEnv, // required by schema
+        role: 'admin',
+        active: true,
+      });
+      (logger || console).info?.(`👑 Default admin created: ${email}`);
+    } else if (admin.role !== 'admin') {
+      await User.updateOne({ _id: admin._id }, { $set: { role: 'admin', active: true } });
+      (logger || console).info?.(`👑 Existing user promoted to admin: ${email}`);
+    } else {
+      (logger || console).info?.(`✅ Admin present: ${email}`);
+    }
+  } catch (e) {
+    (logger || console).error?.('❌ Failed to ensure default admin:', e);
   }
 }
 
@@ -188,4 +237,5 @@ process.on('uncaughtException', (err) => {
 });
 
 export default app;
+
 

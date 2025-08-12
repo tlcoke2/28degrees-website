@@ -3,7 +3,7 @@
 // app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
 
 import Stripe from 'stripe';
-import Booking from '../models/Booking.js';
+import Booking from '../models/Booking.model.js';
 import { sendMail } from '../utils/mailer.js';
 import { bookingConfirmedTemplate } from '../templates/email/booking-confirmed.js';
 

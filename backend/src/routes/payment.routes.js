@@ -107,6 +107,16 @@ router.post('/create-payment-intent', protect, async (req, res) => {
   }
 });
 
+// Add just above router.post('/checkout-session'...
+router.post('/checkout-session/debug', (req, res) => {
+  res.status(200).json({
+    contentType: req.headers['content-type'] || null,
+    typeofBody: typeof req.body,
+    isArray: Array.isArray(req.body),
+    keys: req.body && typeof req.body === 'object' ? Object.keys(req.body) : null,
+    sample: req.body, // ok short-term for debugging
+  });
+});
 /** ---------- Create Checkout Session (matches frontend) ---------- **/
 router.post('/checkout-session', async (req, res) => {
   try {

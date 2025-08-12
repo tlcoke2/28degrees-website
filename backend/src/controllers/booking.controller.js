@@ -1,215 +1,188 @@
+// src/controllers/booking.controller.js
+import Stripe from 'stripe';
 import Tour from '../models/Tour.model.js';
 import Booking from '../models/Booking.model.js';
+import User from '../models/User.model.js';
 import AppError from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
-import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2024-06-20',
+});
 
-// @desc    Get all bookings
+/* -------------------------------------------------------------------------- */
+/*                                LIST / READ                                 */
+/* -------------------------------------------------------------------------- */
+
+// @desc    Get all bookings (admin)
 // @route   GET /api/v1/bookings
 // @access  Private/Admin
-export const getAllBookings = catchAsync(async (req, res, next) => {
-  const bookings = await Booking.find().populate('user').populate('tour');
-
+export const getAllBookings = catchAsync(async (_req, res) => {
+  const bookings = await Booking.find().sort('-createdAt').lean();
   res.status(200).json({
     status: 'success',
     results: bookings.length,
-    data: {
-      bookings,
-    },
+    data: { bookings },
   });
 });
 
-// @desc    Get my bookings
+// @desc    Get my bookings (matches by user id OR email)
 // @route   GET /api/v1/bookings/my-bookings
 // @access  Private
-export const getMyBookings = catchAsync(async (req, res, next) => {
-  const bookings = await Booking.find({ user: req.user.id })
-    .populate({
-      path: 'tour',
-      select: 'name imageCover price duration',
-    })
-    .sort('-createdAt');
+export const getMyBookings = catchAsync(async (req, res) => {
+  const filter = {
+    $or: [{ user: req.user.id }, { email: req.user.email }],
+  };
+  const bookings = await Booking.find(filter)
+    .sort('-createdAt')
+    .lean();
 
   res.status(200).json({
     status: 'success',
     results: bookings.length,
-    data: {
-      bookings,
-    },
+    data: { bookings },
   });
 });
 
-// @desc    Get single booking
+// @desc    Get single booking (owner or admin)
 // @route   GET /api/v1/bookings/:id
 // @access  Private
 export const getBooking = catchAsync(async (req, res, next) => {
-  let query = Booking.findById(req.params.id);
-  
-  // If user is not admin, they can only see their own bookings
-  if (req.user.role !== 'admin') {
-    query = query.where('user').equals(req.user.id);
-  }
-  
-  const booking = await query.populate('user').populate('tour');
+  const booking = await Booking.findById(req.params.id).lean();
+  if (!booking) return next(new AppError('No booking found with that ID', 404));
 
-  if (!booking) {
-    return next(new AppError('No booking found with that ID', 404));
+  const isOwner =
+    (booking.user && String(booking.user) === String(req.user.id)) ||
+    (booking.email && booking.email === req.user.email);
+
+  if (req.user.role !== 'admin' && !isOwner) {
+    return next(new AppError('Not authorized to view this booking', 403));
   }
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      booking,
-    },
-  });
+  res.status(200).json({ status: 'success', data: { booking } });
 });
 
-// @desc    Create new booking
+/* -------------------------------------------------------------------------- */
+/*                           LEGACY CHECKOUT ENDPOINTS                        */
+/* -------------------------------------------------------------------------- */
+
+// These flows are now handled by /api/v1/payments/checkout-session and webhook.
+// Keep stubs for backward compatibility; return 410 Gone with guidance.
+
 // @route   POST /api/v1/bookings/checkout-session/:tourId
-// @access  Private
-export const getCheckoutSession = catchAsync(async (req, res, next) => {
-  // 1) Get the currently booked tour
-  const tour = await Tour.findById(req.params.tourId);
-  if (!tour) {
-    return next(new AppError('No tour found with that ID', 404));
-  }
-
-  // 2) Create checkout session
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    success_url: `${req.protocol}://${req.get('host')}/my-bookings?alert=booking`,
-    cancel_url: `${req.protocol}://${req.get('host')}/tour/${tour.slug}`,
-    customer_email: req.user.email,
-    client_reference_id: req.params.tourId,
-    line_items: [
-      {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `${tour.name} Tour`,
-            description: tour.summary,
-            images: [`https://www.28degreeswest.com/img/tours/${tour.imageCover}`],
-          },
-          unit_amount: tour.price * 100, // Convert to cents
-        },
-        quantity: 1,
-      },
-    ],
-    mode: 'payment',
-    metadata: {
-      user: req.user._id,
-      participants: req.body.participants || 1,
-      startDate: req.body.startDate || new Date(),
-    },
-  });
-
-  // 3) Create session as response
-  res.status(200).json({
-    status: 'success',
-    session,
-  });
+export const getCheckoutSession = catchAsync(async (_req, res) => {
+  res
+    .status(410)
+    .json({
+      status: 'fail',
+      error:
+        'Deprecated. Use POST /api/v1/payments/checkout-session instead.',
+    });
 });
 
-// @desc    Create booking from webhook
 // @route   POST /api/v1/bookings/webhook-checkout
-// @access  Public
-export const webhookCheckout = catchAsync(async (req, res, next) => {
-  // Skip webhook processing in development if DISABLE_STRIPE_WEBHOOK is true
-  if (process.env.NODE_ENV === 'development' && process.env.DISABLE_STRIPE_WEBHOOK === 'true') {
-    console.log('Webhook processing disabled in development');
-    return res.status(200).json({ received: true, message: 'Webhook processing disabled in development' });
-  }
-
-  const signature = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  // Handle the checkout.session.completed event
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    
-    try {
-      // Create booking
-      await Booking.create({
-        tour: session.client_reference_id,
-        user: session.metadata.user,
-        price: session.amount_total / 100, // Convert back to dollars
-        participants: parseInt(session.metadata.participants, 10),
-        startDate: new Date(session.metadata.startDate),
-        paymentIntentId: session.payment_intent,
-        status: 'paid',
-      });
-      console.log('Booking created from webhook');
-    } catch (error) {
-      console.error('Error creating booking from webhook:', error);
-      // Don't return an error response to Stripe to prevent retries for data issues
-    }
-  }
-
-  res.status(200).json({ received: true });
+export const webhookCheckout = catchAsync(async (_req, res) => {
+  res
+    .status(410)
+    .json({
+      status: 'fail',
+      error:
+        'Deprecated. Stripe webhooks are handled at /api/v1/payments/webhook.',
+    });
 });
 
-// @desc    Create new booking (admin only)
+/* -------------------------------------------------------------------------- */
+/*                                    CRUD                                    */
+/* -------------------------------------------------------------------------- */
+
+// @desc    Create new booking (admin)
 // @route   POST /api/v1/bookings
 // @access  Private/Admin
 export const createBooking = catchAsync(async (req, res, next) => {
-  const { tour, user, price, participants, startDate } = req.body;
+  const {
+    tour,            // optional legacy ObjectId
+    user,            // optional legacy ObjectId
+    participants,    // optional legacy count
+    startDate,       // optional legacy Date
+    price,           // optional legacy major-unit price
+    email,           // for Stripe-only bookings without user id
+    customerName,
+    customerPhone,
+    itemId,          // preferred: catalog/tour id
+    itemName,
+    quantity,        // preferred
+    currency,        // preferred (defaults to USD)
+    totalCents,      // preferred amount in cents
+    metadata,        // any extra info
+    status,          // optional status override
+    paymentIntentId, // optional if already captured
+    stripeSessionId, // optional if creating from session
+  } = req.body || {};
 
-  // Check if tour exists
-  const tourExists = await Tour.findById(tour);
-  if (!tourExists) {
-    return next(new AppError('No tour found with that ID', 404));
+  // If a legacy tour id was provided, fetch details to enrich defaults
+  let tourDoc = null;
+  if (tour) {
+    tourDoc = await Tour.findById(tour).select('name price currency').lean();
+    if (!tourDoc) return next(new AppError('No tour found with that ID', 404));
   }
 
-  // Check if user exists
-  const userExists = await User.findById(user);
-  if (!userExists) {
-    return next(new AppError('No user found with that ID', 404));
+  // If a legacy user id was provided, ensure it exists
+  if (user) {
+    const userDoc = await User.findById(user).select('_id').lean();
+    if (!userDoc) return next(new AppError('No user found with that ID', 404));
   }
 
-  // Check if the tour is available for the selected date
-  const isAvailable = await Booking.isTourAvailable(
-    tour,
-    startDate,
-    participants
-  );
-
-  if (!isAvailable) {
-    return next(
-      new AppError('The tour is not available for the selected date', 400)
-    );
+  // Optional availability check (legacy helper)
+  if (tour && startDate) {
+    const taken = await Booking.isTourBooked(tour, startDate);
+    if (taken) {
+      return next(
+        new AppError('The tour is already booked for the selected date', 400)
+      );
+    }
   }
 
-  const booking = await Booking.create({
-    tour,
-    user,
-    price: price || tourExists.price * participants,
-    participants,
-    startDate,
-    status: 'paid',
+  // Derive amounts
+  const qty = Number.isFinite(Number(quantity)) ? Math.max(1, Number(quantity)) : (participants ? Number(participants) : 1);
+  const unitMajor =
+    typeof price === 'number'
+      ? price
+      : tourDoc?.price ?? 0;
+  const amountCents =
+    Number.isFinite(Number(totalCents))
+      ? Number(totalCents)
+      : Math.round((unitMajor || 0) * 100) * (qty || 1);
+
+  const doc = await Booking.create({
+    // Stripe-first fields
+    stripeSessionId: stripeSessionId || undefined,
+    paymentIntentId: paymentIntentId || undefined,
+    email: email || undefined,
+    customerName: customerName || undefined,
+    customerPhone: customerPhone || undefined,
+    itemId: itemId || (tour ? String(tour) : undefined),
+    itemName: itemName || tourDoc?.name || undefined,
+    quantity: qty,
+    date: startDate ? undefined : req.body?.date || undefined, // keep legacy/startDate below
+
+    totalCents: amountCents,
+    currency: (currency || tourDoc?.currency || 'USD').toLowerCase(),
+
+    status: status || (paymentIntentId ? 'paid' : 'pending'),
+    metadata: metadata || {},
+
+    // Legacy compatibility
+    tour: tour || undefined,
+    user: user || undefined,
+    price: typeof price === 'number' ? price : undefined, // legacy major units
+    participants: participants || qty,
+    startDate: startDate || undefined,
   });
 
-  res.status(201).json({
-    status: 'success',
-    data: {
-      booking,
-    },
-  });
+  res.status(201).json({ status: 'success', data: { booking: doc } });
 });
 
-// @desc    Update booking
+// @desc    Update booking (admin)
 // @route   PATCH /api/v1/bookings/:id
 // @access  Private/Admin
 export const updateBooking = catchAsync(async (req, res, next) => {
@@ -217,112 +190,96 @@ export const updateBooking = catchAsync(async (req, res, next) => {
     new: true,
     runValidators: true,
   });
-
-  if (!booking) {
-    return next(new AppError('No booking found with that ID', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      booking,
-    },
-  });
+  if (!booking) return next(new AppError('No booking found with that ID', 404));
+  res.status(200).json({ status: 'success', data: { booking } });
 });
 
-// @desc    Cancel booking
+// @desc    Cancel booking (owner or admin); refunds if payment_intent present
 // @route   PATCH /api/v1/bookings/:id/cancel
 // @access  Private
 export const cancelBooking = catchAsync(async (req, res, next) => {
-  const booking = await Booking.findOne({
-    _id: req.params.id,
-    user: req.user.id,
-  });
+  const booking = await Booking.findById(req.params.id);
+  if (!booking) return next(new AppError('No booking found with that ID', 404));
 
-  if (!booking) {
-    return next(
-      new AppError('No booking found with that ID or not authorized', 404)
-    );
+  const isOwner =
+    (booking.user && String(booking.user) === String(req.user.id)) ||
+    (booking.email && booking.email === req.user.email);
+
+  if (req.user.role !== 'admin' && !isOwner) {
+    return next(new AppError('Not authorized to cancel this booking', 403));
   }
 
-  // Check if booking can be cancelled (e.g., not in the past)
-  if (new Date(booking.startDate) < new Date()) {
-    return next(
-      new AppError('Cannot cancel a booking that has already started', 400)
-    );
+  // If legacy startDate exists and is in the past, block cancellation
+  if (booking.startDate && new Date(booking.startDate) < new Date()) {
+    return next(new AppError('Cannot cancel a booking that has already started', 400));
   }
 
-  // Process refund if payment was made
-  if (booking.paymentIntentId) {
-    // Create a refund
-    await stripe.refunds.create({
-      payment_intent: booking.paymentIntentId,
-    });
+  // Refund if we have a Stripe Payment Intent
+  if (booking.paymentIntentId && process.env.STRIPE_SECRET_KEY) {
+    await stripe.refunds.create({ payment_intent: booking.paymentIntentId });
   }
 
-  // Update booking status
-  booking.status = 'cancelled';
+  booking.status = 'canceled'; // normalize spelling
   await booking.save({ validateBeforeSave: false });
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      booking,
-    },
-  });
+  res.status(200).json({ status: 'success', data: { booking } });
 });
 
-// @desc    Delete booking
+// @desc    Delete booking (admin)
 // @route   DELETE /api/v1/bookings/:id
 // @access  Private/Admin
 export const deleteBooking = catchAsync(async (req, res, next) => {
   const booking = await Booking.findByIdAndDelete(req.params.id);
-
-  if (!booking) {
-    return next(new AppError('No booking found with that ID', 404));
-  }
-
-  res.status(204).json({
-    status: 'success',
-    data: null,
-  });
+  if (!booking) return next(new AppError('No booking found with that ID', 404));
+  res.status(204).json({ status: 'success', data: null });
 });
 
-// @desc    Get booking stats
+/* -------------------------------------------------------------------------- */
+/*                                   STATS                                    */
+/* -------------------------------------------------------------------------- */
+
+// @desc    Get booking stats (paid)
 // @route   GET /api/v1/bookings/booking-stats
 // @access  Private/Admin
-export const getBookingStats = catchAsync(async (req, res, next) => {
-  const stats = await Booking.aggregate([
+export const getBookingStats = catchAsync(async (_req, res) => {
+  // Aggregate by month on paid bookings
+  const agg = await Booking.aggregate([
+    { $match: { status: 'paid' } },
     {
-      $match: { status: 'paid' },
-    },
-    {
-      $group: {
-        _id: { $month: '$createdAt' },
-        numBookings: { $sum: 1 },
-        totalRevenue: { $sum: '$price' },
-        avgPrice: { $avg: '$price' },
-        minPrice: { $min: '$price' },
-        maxPrice: { $max: '$price' },
+      $addFields: {
+        _totalCents: {
+          $cond: [
+            { $and: [{ $ne: ['$totalCents', null] }, { $gt: ['$totalCents', 0] }] },
+            '$totalCents',
+            { $multiply: [{ $ifNull: ['$price', 0] }, 100] }, // fallback to legacy price (major → cents)
+          ],
+        },
       },
     },
     {
-      $addFields: { month: '$_id' },
+      $group: {
+        _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
+        numBookings: { $sum: 1 },
+        totalCents: { $sum: '$_totalCents' },
+        avgCents: { $avg: '$_totalCents' },
+        minCents: { $min: '$_totalCents' },
+        maxCents: { $max: '$_totalCents' },
+      },
     },
     {
       $project: {
         _id: 0,
+        month: '$_id.month',
+        year: '$_id.year',
+        numBookings: 1,
+        totalRevenue: { $divide: ['$totalCents', 100] },
+        avgPrice: { $divide: ['$avgCents', 100] },
+        minPrice: { $divide: ['$minCents', 100] },
+        maxPrice: { $divide: ['$maxCents', 100] },
       },
     },
-    {
-      $sort: { month: 1 },
-    },
+    { $sort: { year: 1, month: 1 } },
   ]);
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      stats,
-    },
-  });
+  res.status(200).json({ status: 'success', data: { stats: agg } });
 });
