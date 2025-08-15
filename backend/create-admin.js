@@ -7,7 +7,7 @@ import User from './src/models/user.model.js';
 dotenv.config();
 
 // MongoDB connection URL
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/28degrees';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongo:VmAaZFvcjCmkndurOTQrlZQtVIVtekIL@centerbeam.proxy.rlwy.net:30897/28degrees?authSource=admin';
 
 // Admin user details
 const ADMIN_EMAIL = 'admin@28degreeswest.com';

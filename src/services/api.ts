@@ -1,24 +1,28 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+// src/services/api.ts
+import { AxiosError, AxiosResponse } from 'axios';
 import { Tour } from '../types/tour';
+import { api } from './http'; // centralized axios with baseURL = VITE_API_URL + '/api/v1'
 
-// Type definitions for Bookings and Users
+/* ----------------------------- Types ----------------------------- */
 export interface Booking {
   id: string;
-  bookingNumber: string;
-  customerName: string;
-  customerEmail: string;
-  tourOrEvent: {
-    id: string;
-    title: string;
-    type: 'tour' | 'event';
-    date: string;
-  };
-  bookingDate: string;
-  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
-  totalAmount: number;
-  paymentStatus: 'paid' | 'pending' | 'refunded' | 'failed';
-  guests: number;
+  bookingNumber?: string;
+  customerName?: string;
+  customerEmail?: string;
+  tourOrEvent?: { id: string; title: string; type: 'tour' | 'event'; date: string };
+  bookingDate?: string;
+  status?: 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'paid';
+  totalAmount?: number;
+  paymentStatus?: 'paid' | 'pending' | 'refunded' | 'failed';
+  guests?: number;
   specialRequests?: string;
+  // Stripe-era fields used in your backend
+  itemId?: string;
+  itemName?: string;
+  quantity?: number;
+  date?: string;           // 'YYYY-MM-DD'
+  totalCents?: number;
+  currency?: string;
 }
 
 export interface User {
@@ -27,324 +31,275 @@ export interface User {
   email: string;
   phone?: string;
   role: 'admin' | 'user' | 'guide';
-  status: 'active' | 'inactive' | 'suspended';
+  status?: 'active' | 'inactive' | 'suspended';
   avatar?: string;
-  joinDate: string;
+  joinDate?: string;
   lastLogin?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// Get API base URL from environment variables or use default
-const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3001/api';
-
-// Define API response types
-interface ApiResponse<T = any> {
-  data: T;
-  message?: string;
-  error?: string | Record<string, string[]>;
-}
-
-// Define auth response type
-interface AuthResponse {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
-}
-
-// Define error response type
 interface ErrorResponse {
   message: string;
   status?: number;
   errors?: Record<string, string[]>;
 }
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+/* ------------------------- Interceptors -------------------------- */
+// Attach admin token first, else user
+api.interceptors.request.use((config) => {
+  const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+  const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = adminToken || userToken;
+  if (token) {
+    config.headers = config.headers || {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Helper function to handle API responses
-const handleResponse = <T>(response: AxiosResponse<ApiResponse<T>>): T => {
-  if (response.status >= 200 && response.status < 300) {
-    return (response.data as ApiResponse<T>).data;
-  }
-  
-  const responseData = response.data as ApiResponse;
-  const error: ErrorResponse = {
-    message: typeof responseData.message === 'string' ? responseData.message : 'An error occurred',
-    status: response.status,
-    errors: typeof responseData.error === 'object' && responseData.error !== null 
-      ? responseData.error as Record<string, string[]> 
-      : undefined,
-  };
-  
-  throw error;
-};
-
-// Add response interceptor to handle errors
+// On 401 → wipe tokens and route user/admin to correct login
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiResponse>) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  (error: AxiosError<any>) => {
+    const status = error.response?.status;
+    if (status === 401) {
+      const url = (error.response?.config?.url || '').toString();
+      const isAdminPath = url.includes('/admin/');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('token');
+        window.location.href = isAdminPath ? '/admin/login' : '/login';
+      }
     }
-    
-    if (error.response?.data) {
-      return Promise.reject({
-        message: error.response.data.message || 'An error occurred',
-        status: error.response.status,
-        errors: (error.response.data as any).errors,
-      });
-    }
-    
-    return Promise.reject(error);
+
+    const msg =
+      (error.response?.data as any)?.message ||
+      (error.response?.data as any)?.error ||
+      error.message ||
+      'An error occurred';
+
+    return Promise.reject({
+      message: typeof msg === 'string' ? msg : 'An error occurred',
+      status,
+      errors: (error.response?.data as any)?.errors,
+    } as ErrorResponse);
   }
 );
 
+/* --------------------------- Helpers ---------------------------- */
+/**
+ * Many of your controllers return { status, data: {...} } (e.g., { data: { tours } }).
+ * This extractor returns either:
+ *  - response.data.data (object), or
+ *  - response.data (if it already matches the expected T), or
+ *  - undefined for 204.
+ */
+function extract<T>(res: AxiosResponse<any>): T {
+  if (res.status === 204) return undefined as unknown as T;
+  const body = res.data;
+  if (body && typeof body === 'object' && 'data' in body) {
+    return (body.data as T);
+  }
+  return body as T;
+}
+
+// Build query string safely
+const toQuery = (obj: Record<string, any>) =>
+  Object.entries(obj)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+
+/* ----------------------------- Auth ----------------------------- */
 export const authService = {
-  login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await api.post('/auth/login', { email, password });
-    return handleResponse<AuthResponse>(response);
+  login: async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
+    const token = res.data?.token ?? res.data?.data?.token;
+    const user = res.data?.user ?? res.data?.data?.user;
+    if (!token) throw { message: 'No token returned from server' } as ErrorResponse;
+    return { token, user } as { token: string; user: User };
   },
-  
-  register: async (userData: { name: string; email: string; password: string }): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', userData);
-    return handleResponse<AuthResponse>(response);
+
+  register: async (userData: { name: string; email: string; password: string }) => {
+    // backend expects passwordConfirm as well
+    const res = await api.post('/auth/register', {
+      ...userData,
+      passwordConfirm: userData.password,
+    });
+    const token = res.data?.token ?? res.data?.data?.token;
+    const user = res.data?.user ?? res.data?.data?.user;
+    if (!token) throw { message: 'No token returned from server' } as ErrorResponse;
+    return { token, user } as { token: string; user: User };
   },
-  
-  getCurrentUser: async (): Promise<AuthResponse['user']> => {
-    const response = await api.get('/auth/me');
-    return handleResponse<{ user: AuthResponse['user'] }>(response).user;
+
+  // Use /users/me (your users router provides this via getMe -> getUser)
+  getCurrentUser: async () => {
+    const res = await api.get('/users/me');
+    const payload = extract<{ user: User }>(res);
+    return payload.user;
   },
-  
-  logout: (): void => {
+
+  logout: async () => {
+    // your route is GET /auth/logout
+    await api.get('/auth/logout').catch(() => {});
     localStorage.removeItem('token');
   },
+
+  changePassword: async (passwordCurrent: string, password: string) => {
+    const res = await api.patch('/auth/updateMyPassword', {
+      passwordCurrent,
+      password,
+      passwordConfirm: password,
+    });
+    return extract<any>(res);
+  },
+
+  requestPasswordReset: async (email: string) => {
+    const res = await api.post('/auth/forgotPassword', { email });
+    return extract<any>(res);
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const res = await api.patch(`/auth/resetPassword/${encodeURIComponent(token)}`, {
+      password: newPassword,
+      passwordConfirm: newPassword,
+    });
+    return extract<any>(res);
+  },
 };
 
+/* ----------------------------- Tours ---------------------------- */
 export const tourService = {
   getAllTours: async (): Promise<Tour[]> => {
-    const response = await api.get('/tours');
-    return handleResponse<Tour[]>(response);
+    const res = await api.get('/tours');
+    const data = extract<{ tours: Tour[] }>(res);
+    return data.tours;
   },
-  
+
   getTourById: async (id: string): Promise<Tour> => {
-    const response = await api.get(`/tours/${id}`);
-    return handleResponse<Tour>(response);
+    const res = await api.get(`/tours/${id}`);
+    const data = extract<{ tour: Tour }>(res);
+    return data.tour;
   },
-  
+
   createTour: async (tourData: Omit<Tour, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tour> => {
-    const response = await api.post('/tours', tourData);
-    return handleResponse<Tour>(response);
+    const res = await api.post('/tours', tourData);
+    const data = extract<{ tour: Tour }>(res);
+    return data.tour;
   },
-  
+
   updateTour: async (id: string, tourData: Partial<Omit<Tour, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Tour> => {
-    const response = await api.put(`/tours/${id}`, tourData);
-    return handleResponse<Tour>(response);
+    const res = await api.patch(`/tours/${id}`, tourData);
+    const data = extract<{ tour: Tour }>(res);
+    return data.tour;
   },
-  
+
   deleteTour: async (id: string): Promise<void> => {
-    await api.delete(`/tours/${id}`);
+    const res = await api.delete(`/tours/${id}`);
+    return extract<void>(res);
   },
 };
 
-export const eventService = {
-  getAllEvents: async () => {
-    const response = await api.get('/events');
-    return response.data;
-  },
-  getEventById: async (id: string) => {
-    const response = await api.get(`/events/${id}`);
-    return response.data;
-  },
-  createEvent: async (eventData: any) => {
-    const response = await api.post('/events', eventData);
-    return response.data;
-  },
-  updateEvent: async (id: string, eventData: any) => {
-    const response = await api.put(`/events/${id}`, eventData);
-    return response.data;
-  },
-  deleteEvent: async (id: string) => {
-    await api.delete(`/events/${id}`);
-  },
-};
-
+/* ---------------------------- Bookings --------------------------- */
 export const bookingService = {
-  /**
-   * Get all bookings with optional pagination and filters
-   */
-  getAllBookings(page = 1, limit = 10, filters: Record<string, any> = {}) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...filters
-    });
-    return api.get<ApiResponse<PaginatedResponse<Booking>>>(`/bookings?${params}`).then(handleResponse);
+  // Admin list (your controller: getAllBookings)
+  getAllBookings: async (filters: Record<string, any> = {}) => {
+    const qs = toQuery(filters);
+    const res = await api.get(`/bookings${qs ? `?${qs}` : ''}`);
+    const data = extract<{ bookings: Booking[] }>(res);
+    return data.bookings;
   },
 
-  /**
-   * Get a single booking by ID
-   */
-  getBookingById(id: string): Promise<Booking> {
-    return api.get<ApiResponse<Booking>>(`/bookings/${id}`).then(handleResponse);
+  getBookingById: async (id: string): Promise<Booking> => {
+    const res = await api.get(`/bookings/${id}`);
+    const data = extract<{ booking: Booking }>(res);
+    return data.booking;
   },
 
-  /**
-   * Create a new booking
-   */
-  createBooking(bookingData: Omit<Booking, 'id' | 'bookingNumber' | 'bookingDate' | 'status' | 'paymentStatus'>): Promise<Booking> {
-    return api.post<ApiResponse<Booking>>('/bookings', bookingData).then(handleResponse);
+  // Admin create (your controller: createBooking)
+  createBooking: async (bookingData: Partial<Booking>): Promise<Booking> => {
+    const res = await api.post('/bookings', bookingData);
+    const data = extract<{ booking: Booking }>(res);
+    return data.booking;
   },
 
-  /**
-   * Update booking status
-   */
-  updateBookingStatus(id: string, status: Booking['status']): Promise<Booking> {
-    return api.patch<ApiResponse<Booking>>(`/bookings/${id}/status`, { status }).then(handleResponse);
+  // Update arbitrary fields (status, etc.)
+  updateBooking: async (id: string, bookingData: Partial<Booking>): Promise<Booking> => {
+    const res = await api.patch(`/bookings/${id}`, bookingData);
+    const data = extract<{ booking: Booking }>(res);
+    return data.booking;
   },
 
-  /**
-   * Update booking details
-   */
-  updateBooking(id: string, bookingData: Partial<Omit<Booking, 'id' | 'bookingNumber' | 'bookingDate'>>): Promise<Booking> {
-    return api.put<ApiResponse<Booking>>(`/bookings/${id}`, bookingData).then(handleResponse);
+  // Dedicated cancel endpoint per your controller
+  cancelBooking: async (id: string): Promise<Booking> => {
+    const res = await api.patch(`/bookings/${id}/cancel`);
+    const data = extract<{ booking: Booking }>(res);
+    return data.booking;
   },
 
-  /**
-   * Cancel a booking
-   */
-  cancelBooking(id: string): Promise<void> {
-    return api.delete<ApiResponse<void>>(`/bookings/${id}`).then(handleResponse);
+  // My bookings (your controller: getMyBookings)
+  getMyBookings: async (): Promise<Booking[]> => {
+    const res = await api.get('/bookings/my-bookings');
+    const data = extract<{ bookings: Booking[] }>(res);
+    return data.bookings;
   },
 
-  /**
-   * Get bookings for the current user
-   */
-  getMyBookings(): Promise<Booking[]> {
-    return api.get<ApiResponse<Booking[]>>('/bookings/me').then(handleResponse);
+  deleteBooking: async (id: string): Promise<void> => {
+    const res = await api.delete(`/bookings/${id}`);
+    return extract<void>(res);
   },
 };
 
+/* ------------------------------ Users --------------------------- */
 export const userService = {
-  /**
-   * Get all users with optional pagination and filters
-   */
-  getAllUsers(page = 1, limit = 10, filters: Partial<User> = {}) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...filters
-    });
-    return api.get<ApiResponse<PaginatedResponse<User>>>(`/users?${params}`).then(handleResponse);
+  getAllUsers: async (filters: Partial<User> = {}) => {
+    const qs = toQuery(filters);
+    const res = await api.get(`/users${qs ? `?${qs}` : ''}`);
+    const data = extract<{ users: User[] }>(res);
+    return data.users;
   },
 
-  /**
-   * Get a single user by ID
-   */
-  getUserById(id: string): Promise<User> {
-    return api.get<ApiResponse<User>>(`/users/${id}`).then(handleResponse);
+  getUserById: async (id: string): Promise<User> => {
+    const res = await api.get(`/users/${id}`);
+    const data = extract<{ user: User }>(res);
+    return data.user;
   },
 
-  /**
-   * Create a new user (admin only)
-   */
-  createUser(userData: Omit<User, 'id' | 'joinDate' | 'lastLogin' | 'status'> & { password: string }): Promise<User> {
-    return api.post<ApiResponse<User>>('/users', userData).then(handleResponse);
+  createUser: async (userData: Partial<User> & { password: string }): Promise<User> => {
+    const payload: any = { ...userData, passwordConfirm: userData.password };
+    const res = await api.post('/users', payload);
+    const data = extract<{ user: User }>(res);
+    return data.user;
   },
 
-  /**
-   * Update user details
-   */
-  updateUser(id: string, userData: Partial<Omit<User, 'id' | 'joinDate' | 'lastLogin'>>): Promise<User> {
-    return api.put<ApiResponse<User>>(`/users/${id}`, userData).then(handleResponse);
+  updateUser: async (id: string, userData: Partial<User>): Promise<User> => {
+    const res = await api.patch(`/users/${id}`, userData);
+    const data = extract<{ user: User }>(res);
+    return data.user;
   },
 
-  /**
-   * Update user role (admin only)
-   */
-  updateUserRole(id: string, role: User['role']): Promise<User> {
-    return api.patch<ApiResponse<User>>(`/users/${id}/role`, { role }).then(handleResponse);
+  deleteUser: async (id: string): Promise<void> => {
+    const res = await api.delete(`/users/${id}`);
+    return extract<void>(res);
   },
 
-  /**
-   * Update user status (admin only)
-   */
-  updateUserStatus(id: string, status: User['status']): Promise<User> {
-    return api.patch<ApiResponse<User>>(`/users/${id}/status`, { status }).then(handleResponse);
+  // Profile
+  getProfile: async (): Promise<User> => {
+    const res = await api.get('/users/me');
+    const data = extract<{ user: User }>(res);
+    return data.user;
   },
 
-  /**
-   * Delete a user (admin only)
-   */
-  deleteUser(id: string): Promise<void> {
-    return api.delete<ApiResponse<void>>(`/users/${id}`).then(handleResponse);
+  updateProfile: async (userData: Partial<User>): Promise<User> => {
+    const res = await api.patch('/users/updateMe', userData);
+    const data = extract<{ user: User }>(res);
+    return data.user;
   },
 
-  /**
-   * Get current user profile
-   */
-  getProfile(): Promise<User> {
-    return api.get<ApiResponse<User>>('/users/me').then(handleResponse);
-  },
-
-  /**
-   * Update current user profile
-   */
-  updateProfile(userData: Partial<Omit<User, 'id' | 'role' | 'joinDate' | 'lastLogin' | 'status'>>): Promise<User> {
-    return api.put<ApiResponse<User>>('/users/me', userData).then(handleResponse);
-  },
-
-  /**
-   * Change password
-   */
-  changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    return api.post<ApiResponse<void>>('/users/change-password', { currentPassword, newPassword }).then(handleResponse);
-  },
-
-  /**
-   * Request password reset
-   */
-  requestPasswordReset(email: string): Promise<void> {
-    return api.post<ApiResponse<void>>('/users/request-password-reset', { email }).then(handleResponse);
-  },
-
-  /**
-   * Reset password with token
-   */
-  resetPassword(token: string, newPassword: string): Promise<void> {
-    return api.post<ApiResponse<void>>('/users/reset-password', { token, newPassword }).then(handleResponse);
+  deleteMe: async (): Promise<void> => {
+    const res = await api.delete('/users/deleteMe');
+    return extract<void>(res);
   },
 };
 
 export default api;
+

@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -27,53 +27,53 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Check for existing session on load
   useEffect(() => {
-    const checkAuth = async () => {
+    let active = true;
+    (async () => {
       try {
         const token = localStorage.getItem('token');
-        if (token) {
-          // Verify token with backend
-          const { data } = await api.get('/api/auth/me');
-          setUser(data.user);
-        }
+        if (!token) return;
+        // verify token with backend
+        const { data } = await api.get('/auth/me');
+        if (active) setUser(data.user || data.data?.user || null);
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('token');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
+    })();
+    return () => {
+      active = false;
     };
-
-    checkAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
-    try {
-      const { data } = await api.post('/api/auth/login', { email, password });
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    }
+    const { data } = await api.post('/auth/login', { email, password });
+    const token = data?.token || data?.data?.token;
+    const u = data?.user || data?.data?.user;
+    if (!token) throw new Error('No token returned from server');
+    localStorage.setItem('token', token);
+    setUser(u);
+    navigate('/dashboard', { replace: true });
   };
 
   const register = async (name: string, email: string, password: string) => {
-    try {
-      const { data } = await api.post('/api/auth/register', { name, email, password });
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
-    }
+    // NOTE: backend expects passwordConfirm
+    const { data } = await api.post('/auth/register', { name, email, password, passwordConfirm: password });
+    const token = data?.token || data?.data?.token;
+    const u = data?.user || data?.data?.user;
+    if (!token) throw new Error('No token returned from server');
+    localStorage.setItem('token', token);
+    setUser(u);
+    navigate('/dashboard', { replace: true });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Your route is GET /auth/logout – use GET to match it
+    await api.get('/auth/logout').catch(() => {});
     localStorage.removeItem('token');
     setUser(null);
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   return (
@@ -94,9 +94,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within a UserProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within a UserProvider');
   return context;
 };
 

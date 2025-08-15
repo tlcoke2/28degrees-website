@@ -2,10 +2,9 @@ import React from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Button, FormControl, InputLabel,
-  Select, MenuItem, CircularProgress, Box,
-  SelectChangeEvent
+  Select, MenuItem, CircularProgress, Box
 } from '@mui/material';
-// User type is not directly used in this file
+import { SelectChangeEvent } from '@mui/material/Select';
 
 export interface UserFormData {
   id?: string;
@@ -22,12 +21,10 @@ export interface UserFormData {
   lastLogin?: string;
 }
 
-// Default form values - removed as it's not used in this file
-
 interface UserFormDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (userData: UserFormData) => void;
+  onSubmit: (userData: Omit<UserFormData, 'confirmPassword'>) => void;
   formData: UserFormData;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onRoleChange: (e: SelectChangeEvent<string>) => void;
@@ -46,143 +43,163 @@ export const UserFormDialog: React.FC<UserFormDialogProps> = ({
   onStatusChange,
   loading,
   editMode
-}) => (
-  <Dialog 
-    open={open} 
-    onClose={loading ? undefined : onClose} 
-    maxWidth="sm" 
-    fullWidth
-    aria-labelledby="user-form-dialog-title"
-  >
-    <DialogTitle id="user-form-dialog-title">
-      {editMode ? 'Edit User' : 'Add New User'}
-    </DialogTitle>
-    <DialogContent>
-      <Box mt={2}>
-        <Box display="flex" gap={2}>
+}) => {
+  const roleLabelId = 'user-role-label';
+  const statusLabelId = 'user-status-label';
+
+  return (
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onClose}
+      maxWidth="sm"
+      fullWidth
+      aria-labelledby="user-form-dialog-title"
+    >
+      <DialogTitle id="user-form-dialog-title">
+        {editMode ? 'Edit User' : 'Add New User'}
+      </DialogTitle>
+
+      <DialogContent>
+        <Box mt={2}>
+          <Box display="flex" gap={2}>
+            <TextField
+              fullWidth
+              label="First Name"
+              name="firstName"
+              value={formData.firstName}
+              onChange={onInputChange}
+              margin="normal"
+              required
+              disabled={loading}
+              autoFocus
+            />
+            <TextField
+              fullWidth
+              label="Last Name"
+              name="lastName"
+              value={formData.lastName}
+              onChange={onInputChange}
+              margin="normal"
+              required
+              disabled={loading}
+            />
+          </Box>
+
           <TextField
             fullWidth
-            label="First Name"
-            name="firstName"
-            value={formData.firstName}
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
             onChange={onInputChange}
             margin="normal"
             required
-            disabled={loading}
+            disabled={editMode || loading}
           />
+
           <TextField
             fullWidth
-            label="Last Name"
-            name="lastName"
-            value={formData.lastName}
+            label="Phone"
+            name="phone"
+            value={formData.phone || ''}
             onChange={onInputChange}
             margin="normal"
-            required
             disabled={loading}
           />
+
+          <FormControl fullWidth margin="normal" disabled={loading}>
+            <InputLabel id={roleLabelId}>Role</InputLabel>
+            <Select
+              labelId={roleLabelId}
+              id="role"
+              value={formData.role}
+              onChange={onRoleChange}
+              label="Role"
+              required
+            >
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="guide">Guide</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth margin="normal" disabled={loading}>
+            <InputLabel id={statusLabelId}>Status</InputLabel>
+            <Select
+              labelId={statusLabelId}
+              id="status"
+              value={formData.status}
+              onChange={onStatusChange}
+              label="Status"
+              required
+            >
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+              <MenuItem value="suspended">Suspended</MenuItem>
+            </Select>
+          </FormControl>
+
+          {!editMode && (
+            <>
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password || ''}
+                onChange={onInputChange}
+                margin="normal"
+                required
+                disabled={loading}
+              />
+              <TextField
+                fullWidth
+                label="Confirm Password"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword || ''}
+                onChange={onInputChange}
+                margin="normal"
+                required
+                disabled={loading}
+                error={
+                  formData.password !== formData.confirmPassword &&
+                  !!formData.confirmPassword
+                }
+                helperText={
+                  formData.password !== formData.confirmPassword &&
+                  !!formData.confirmPassword
+                    ? 'Passwords do not match'
+                    : ''
+                }
+              />
+            </>
+          )}
         </Box>
-        <TextField
-          fullWidth
-          label="Email"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={onInputChange}
-          margin="normal"
-          required
-          disabled={editMode}
-        />
-        <TextField
-          fullWidth
-          label="Phone"
-          name="phone"
-          value={formData.phone}
-          onChange={onInputChange}
-          margin="normal"
-        />
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Role</InputLabel>
-          <Select
-            value={formData.role}
-            onChange={onRoleChange}
-            label="Role"
-            required
-          >
-            <MenuItem value="user">User</MenuItem>
-            <MenuItem value="admin">Admin</MenuItem>
-            <MenuItem value="guide">Guide</MenuItem>
-          </Select>
-        </FormControl>
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={formData.status}
-            onChange={onStatusChange}
-            label="Status"
-            required
-          >
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-            <MenuItem value="suspended">Suspended</MenuItem>
-          </Select>
-        </FormControl>
-        {!editMode && (
-          <>
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={onInputChange}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={onInputChange}
-              margin="normal"
-              required
-              error={
-                formData.password !== formData.confirmPassword &&
-                formData.confirmPassword !== ''
-              }
-              helperText={
-                formData.password !== formData.confirmPassword &&
-                formData.confirmPassword !== ''
-                  ? 'Passwords do not match'
-                  : ''
-              }
-            />
-          </>
-        )}
-      </Box>
-    </DialogContent>
-    <DialogActions>
-      <Button onClick={onClose} disabled={loading}>
-        Cancel
-      </Button>
-      <Button
-        onClick={() => {
-          const { confirmPassword, ...submitData } = formData;
-          onSubmit(submitData);
-        }}
-        variant="contained"
-        color="primary"
-        disabled={
-          loading ||
-          !formData.firstName?.trim() ||
-          !formData.lastName?.trim() ||
-          !formData.email?.trim() ||
-          (!editMode && (!formData.password || formData.password !== formData.confirmPassword))
-        }
-      >
-        {loading ? <CircularProgress size={24} /> : 'Save'}
-      </Button>
-    </DialogActions>
-  </Dialog>
-);
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={onClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={() => {
+            const { confirmPassword, ...submitData } = formData;
+            onSubmit(submitData);
+          }}
+          variant="contained"
+          color="primary"
+          disabled={
+            loading ||
+            !formData.firstName?.trim() ||
+            !formData.lastName?.trim() ||
+            !formData.email?.trim() ||
+            (!editMode && (!formData.password || formData.password !== formData.confirmPassword))
+          }
+        >
+          {loading ? <CircularProgress size={24} /> : 'Save'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};

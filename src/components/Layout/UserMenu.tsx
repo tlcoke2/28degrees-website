@@ -1,5 +1,6 @@
+// src/components/layout/UserMenu.tsx
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/UserContext';
 import {
   Avatar,
@@ -20,6 +21,7 @@ import {
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -34,6 +36,7 @@ const UserMenu: React.FC = () => {
   const handleLogout = () => {
     handleClose();
     logout();
+    navigate('/login');
   };
 
   if (!user) {
@@ -65,12 +68,13 @@ const UserMenu: React.FC = () => {
       <IconButton
         onClick={handleMenu}
         size="small"
+        aria-label="account menu"
         aria-controls={open ? 'account-menu' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
       >
         <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-          {user.name ? user.name.charAt(0).toUpperCase() : <PersonIcon />}
+          {user?.name ? user.name.charAt(0).toUpperCase() : <PersonIcon />}
         </Avatar>
       </IconButton>
       <Menu
@@ -78,7 +82,6 @@ const UserMenu: React.FC = () => {
         id="account-menu"
         open={open}
         onClose={handleClose}
-        onClick={handleClose}
         PaperProps={{
           elevation: 0,
           sx: {
@@ -96,7 +99,10 @@ const UserMenu: React.FC = () => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem component={RouterLink} to="/dashboard">
+        <MenuItem
+          component={RouterLink}
+          to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
+        >
           <ListItemIcon>
             <DashboardIcon fontSize="small" />
           </ListItemIcon>

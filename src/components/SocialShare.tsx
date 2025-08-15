@@ -1,24 +1,23 @@
 import React from 'react';
-import { 
-  Box, 
-  IconButton, 
-  Tooltip, 
+import {
+  Box,
+  IconButton,
+  Tooltip,
   Typography,
   Button,
   Popover,
   List,
-  ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  ListItemButton,
 } from '@mui/material';
 import {
   Share as ShareIcon,
-  Facebook as FacebookIcon,
-  Twitter as TwitterIcon,
   Link as LinkIcon,
-  Email as EmailIcon,
-  WhatsApp as WhatsAppIcon
+  WhatsApp as WhatsAppIcon,
+  Instagram as InstagramIcon,
 } from '@mui/icons-material';
+import SvgIcon from '@mui/material/SvgIcon';
 
 type SocialShareProps = {
   url: string;
@@ -30,6 +29,13 @@ type SocialShareProps = {
   color?: 'primary' | 'secondary' | 'inherit' | 'default';
 };
 
+// Minimal TikTok logo as an inline SVG (Material doesn't ship a TikTok icon)
+const TikTokIcon: React.FC<React.ComponentProps<typeof SvgIcon>> = (props) => (
+  <SvgIcon {...props} viewBox="0 0 48 48">
+    <path d="M31.3 8.2c2.2 2.4 4.9 4 8.3 4.3v6.1c-3.6-.1-6.7-1.2-8.9-3V30c0 6-4.9 10.9-10.9 10.9S8.9 36 8.9 30s4.9-10.9 10.9-10.9c.6 0 1.2.1 1.8.2v6.3c-.6-.3-1.2-.4-1.8-.4-2.8 0-5 2.2-5 4.9s2.2 4.9 5 4.9 4.9-2.2 4.9-4.9V6.9h6.7v1.3z" />
+  </SvgIcon>
+);
+
 const SocialShare: React.FC<SocialShareProps> = ({
   url,
   title,
@@ -37,72 +43,95 @@ const SocialShare: React.FC<SocialShareProps> = ({
   hashtags = ['28DegreesWest', 'JamaicaTravel'],
   size = 'medium',
   variant = 'icon',
-  color = 'primary'
+  color = 'primary',
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
   const [copied, setCopied] = React.useState(false);
-  
+
+  const open = Boolean(anchorEl);
+  const id = open ? 'social-share-popover' : undefined;
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      return true;
     } catch (err) {
       console.error('Failed to copy text: ', err);
-      return false;
     }
+  };
+
+  const webShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text: description || title,
+          url,
+        });
+      } catch (e) {
+        // user canceled or unsupported action
+      }
+      return true;
+    }
+    return false;
   };
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleClose = () => {
     setAnchorEl(null);
     setCopied(false);
   };
 
-  const handleCopyLink = () => {
-    copyToClipboard(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const open = Boolean(anchorEl);
-  const id = open ? 'social-share-popover' : undefined;
-
-  const shareOptions = [
+  const shareOptions: Array<{
+    name: string;
+    icon: React.ReactNode;
+    color: string;
+    onClick: () => void | Promise<void>;
+  }> = [
     {
       name: 'Copy Link',
       icon: <LinkIcon />,
-      action: handleCopyLink,
-      color: '#666666'
-    },
-    {
-      name: 'Facebook',
-      icon: <FacebookIcon />,
-      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(description)}`,
-      color: '#1877F2'
-    },
-    {
-      name: 'Twitter',
-      icon: <TwitterIcon />,
-      url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}&hashtags=${hashtags.join(',')}`,
-      color: '#1DA1F2'
+      color: '#666666',
+      onClick: () => copyToClipboard(url),
     },
     {
       name: 'WhatsApp',
       icon: <WhatsAppIcon />,
-      url: `https://wa.me/?text=${encodeURIComponent(`${title} - ${url}`)}`,
-      color: '#25D366'
+      color: '#25D366',
+      onClick: () => {
+        const link = `https://wa.me/?text=${encodeURIComponent(`${title}\n${url}`)}`;
+        window.open(link, '_blank', 'noopener,noreferrer');
+      },
     },
     {
-      name: 'Email',
-      icon: <EmailIcon />,
-      url: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${description}\n\n${url}`)}`,
-      color: '#EA4335'
-    }
+      name: 'Instagram',
+      icon: <InstagramIcon />,
+      color: '#E1306C',
+      onClick: async () => {
+        const shared = await webShare();
+        if (!shared) {
+          // Fallback: copy link and open Instagram for manual paste
+          await copyToClipboard(url);
+          window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+        }
+      },
+    },
+    {
+      name: 'TikTok',
+      icon: <TikTokIcon />,
+      color: '#000000',
+      onClick: async () => {
+        const shared = await webShare();
+        if (!shared) {
+          // Fallback: copy link and open TikTok for manual paste
+          await copyToClipboard(url);
+          window.open('https://www.tiktok.com/', '_blank', 'noopener,noreferrer');
+        }
+      },
+    },
   ];
 
   return (
@@ -135,50 +164,40 @@ const SocialShare: React.FC<SocialShareProps> = ({
         open={open}
         anchorEl={anchorEl}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Box p={2}>
+        <Box p={2} sx={{ minWidth: 240 }}>
           <Typography variant="subtitle1" gutterBottom>
-            Share this {title ? 'tour' : 'page'}
+            Share this {title ? 'item' : 'page'}
           </Typography>
           <List dense>
-            {shareOptions.map((option) => (
-              <ListItem 
-                button 
-                key={option.name}
-                onClick={() => {
-                  if (option.action) {
-                    option.action();
-                  } else if (option.url) {
-                    window.open(option.url, '_blank', 'noopener,noreferrer');
-                  }
+            {shareOptions.map(({ name, icon, color, onClick }) => (
+              <ListItemButton
+                key={name}
+                onClick={async () => {
+                  await onClick();
                   handleClose();
                 }}
               >
-                <ListItemIcon sx={{ color: option.color, minWidth: 40 }}>
-                  {option.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={option.name} 
+                <ListItemIcon sx={{ color, minWidth: 40 }}>{icon}</ListItemIcon>
+                <ListItemText
+                  primary={name}
                   primaryTypographyProps={{
-                    color: option.name === 'Copy Link' && copied ? 'primary' : 'textPrimary'
+                    color: name === 'Copy Link' && copied ? 'primary' : 'textPrimary',
                   }}
                 />
-                {option.name === 'Copy Link' && copied && (
+                {name === 'Copy Link' && copied && (
                   <Typography variant="caption" color="primary">
                     Copied!
                   </Typography>
                 )}
-              </ListItem>
+              </ListItemButton>
             ))}
           </List>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            Tip: On mobile, the Share option may let you post directly to Instagram or TikTok.
+          </Typography>
         </Box>
       </Popover>
     </>

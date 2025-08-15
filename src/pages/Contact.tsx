@@ -131,7 +131,7 @@ const Contact: React.FC = () => {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <PhoneIcon color="primary" sx={{ mr: 2 }} />
-                  <Typography>+1 (876) 555-0123</Typography>
+                  <Typography>+44 7398076328</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <EmailIcon color="primary" sx={{ mr: 2 }} />

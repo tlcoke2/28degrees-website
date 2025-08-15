@@ -1,18 +1,21 @@
 import React from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Button, 
+import {
+  Container,
+  Typography,
+  Box,
+  Button,
   Card,
   CardContent,
   CardMedia,
   CardActionArea,
   CardActions,
   Rating,
-  styled
+  styled,
+  AppBar,
+  Toolbar,
+  Stack,
 } from '@mui/material';
-import Grid from '@mui/material/Unstable_Grid2'; // Import Grid2 for better TypeScript support
+import Grid from '@mui/material/Unstable_Grid2';
 import { useNavigate } from 'react-router-dom';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -49,22 +52,24 @@ const Home: React.FC = () => {
     {
       id: 1,
       title: 'Luxury Beach Getaway',
-      description: 'Experience the finest beaches in Jamaica with our exclusive VIP beach package.',
+      description:
+        'Experience the finest beaches in Jamaica with our exclusive VIP beach package.',
       image: '/images/beach.jpg',
       location: 'Negril',
       price: 299,
       duration: '3 days',
-      rating: 4.8
+      rating: 4.8,
     },
     {
       id: 2,
       title: 'Mountain Retreat',
-      description: 'Discover the breathtaking mountain views of Jamaica in ultimate comfort.',
+      description:
+        'Discover the breathtaking mountain views of Jamaica in ultimate comfort.',
       image: '/images/mountain.jpg',
       location: 'Blue Mountains',
       price: 399,
       duration: '5 days',
-      rating: 4.9
+      rating: 4.9,
     },
     {
       id: 3,
@@ -74,8 +79,8 @@ const Home: React.FC = () => {
       location: 'Kingston',
       price: 249,
       duration: '2 days',
-      rating: 4.7
-    }
+      rating: 4.7,
+    },
   ];
 
   const handleTourSelect = (tourId: number) => {
@@ -84,11 +89,67 @@ const Home: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
+      {/* Top navigation (fixed, visible, blue menu items) */}
+      <AppBar
+        position="fixed"
+        elevation={1}
+        sx={{
+          bgcolor: 'white',
+          color: 'primary.main',
+          borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+          zIndex: (theme) => theme.zIndex.drawer + 2,
+        }}
+      >
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              letterSpacing: 0.5,
+              cursor: 'pointer',
+              color: 'primary.main',
+            }}
+            onClick={() => navigate('/')}
+          >
+            28 Degrees West
+          </Typography>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="text"
+              color="primary"
+              onClick={() => navigate('/tours')}
+              sx={{ fontWeight: 600 }}
+            >
+              Tours
+            </Button>
+            <Button
+              variant="text"
+              color="primary"
+              onClick={() => navigate('/contact')}
+              sx={{ fontWeight: 600 }}
+            >
+              Contact
+            </Button>
+            <Button
+              color="primary"
+              variant="contained"
+              onClick={() => navigate('/admin/login')}
+              sx={{ fontWeight: 700 }}
+            >
+              Admin Login
+            </Button>
+          </Stack>
+        </Toolbar>
+      </AppBar>
+
+      {/* Spacer for fixed AppBar */}
+      <Toolbar />
+
       {/* Hero Section */}
       <Box
         sx={{
           position: 'relative',
-          height: '100vh',
+          height: 'calc(100vh - 64px)',
           width: '100%',
           backgroundImage: `url(${heroImage})`,
           backgroundSize: 'cover',
@@ -122,7 +183,7 @@ const Home: React.FC = () => {
               textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
             }}
           >
-            Discover Jamaica's Hidden Gems
+            Discover Jamaica&apos;s Hidden Gems
           </Typography>
           <Typography
             variant="h5"
@@ -134,7 +195,8 @@ const Home: React.FC = () => {
               textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
             }}
           >
-            Experience luxury, adventure, and culture like never before with our exclusive adventures and experiences.
+            Experience luxury, adventure, and culture like never before with our
+            exclusive adventures and experiences.
           </Typography>
           <Button
             variant="contained"
@@ -223,14 +285,8 @@ const Home: React.FC = () => {
                 borderRadius: '2px',
                 animation: 'scroll 2s infinite',
                 '@keyframes scroll': {
-                  '0%': {
-                    transform: 'translate(-50%, 0)',
-                    opacity: 1,
-                  },
-                  '100%': {
-                    transform: 'translate(-50%, 20px)',
-                    opacity: 0,
-                  },
+                  '0%': { transform: 'translate(-50%, 0)', opacity: 1 },
+                  '100%': { transform: 'translate(-50%, 20px)', opacity: 0 },
                 },
               },
             }}
@@ -247,13 +303,8 @@ const Home: React.FC = () => {
           {featuredTours.map((tour) => (
             <Grid xs={12} sm={6} md={4} key={tour.id}>
               <StyledCard>
-                <CardActionArea>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={tour.image}
-                    alt={tour.title}
-                  />
+                <CardActionArea onClick={() => handleTourSelect(tour.id)}>
+                  <CardMedia component="img" height="200" image={tour.image} alt={tour.title} />
                   <CardContent>
                     <Typography gutterBottom variant="h5" component="div">
                       {tour.title}

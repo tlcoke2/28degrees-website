@@ -1,43 +1,36 @@
-import { 
-  Box, 
-  Container, 
-  Grid, 
-  Typography, 
-  Link as MuiLink, 
+import {
+  Box,
+  Container,
+  Typography,
+  Link as MuiLink,
   Divider,
   styled,
-  useTheme
+  useTheme,
 } from '@mui/material';
-import { 
-  Email as EmailIcon, 
-  Phone as PhoneIcon, 
-  LocationOn as LocationIcon, 
-  AccessTime as AccessTimeIcon 
+import Grid from '@mui/material/Unstable_Grid2'; // ✅ Grid v2 (handles xs/md without 'item')
+import {
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import SocialMediaLinks from '../SocialMediaLinks';
 
-// Styled components with proper theme typing
-import { Theme } from '@mui/material/styles';
-
-interface StyledProps {
-  theme: Theme;
-}
-
-const FooterLink = styled(MuiLink)(({ theme }: StyledProps) => ({
-  color: 'rgba(255, 255, 255, 0.8)',
+const FooterLink = styled(MuiLink)(({ theme }) => ({
+  color: 'rgba(255, 255, 255, 0.85)',
   display: 'block',
   marginBottom: theme.spacing(1),
   textDecoration: 'none',
-  transition: 'all 0.3s ease',
+  transition: 'all 0.2s ease',
   cursor: 'pointer',
-  '&:hover': {
+  minWidth: 0,
+  wordBreak: 'break-word',
+  hyphens: 'auto',
+  '&:hover,&:focus': {
     color: theme.palette.secondary.main,
     paddingLeft: theme.spacing(0.5),
-  },
-  '&:focus': {
     outline: 'none',
-    color: theme.palette.secondary.main,
-  }
+  },
 }));
 
 interface FooterSectionProps {
@@ -46,15 +39,19 @@ interface FooterSectionProps {
 }
 
 const FooterSection = ({ title, children }: FooterSectionProps) => (
-  <Box sx={{ mb: { xs: 3, md: 0 } }}>
-    <Typography 
-      variant="h6" 
-      component="h3" 
-      sx={{ 
+  <Box sx={{ mb: { xs: 3, md: 0 }, minWidth: 0 }}>
+    <Typography
+      variant="h6"
+      component="h3"
+      sx={{
         color: 'white',
         fontWeight: 600,
         mb: 2,
         position: 'relative',
+        pr: 1,
+        minWidth: 0,
+        wordBreak: 'break-word',
+        hyphens: 'auto',
         '&:after': {
           content: '""',
           position: 'absolute',
@@ -68,9 +65,7 @@ const FooterSection = ({ title, children }: FooterSectionProps) => (
     >
       {title}
     </Typography>
-    <Box>
-      {children}
-    </Box>
+    <Box sx={{ minWidth: 0 }}>{children}</Box>
   </Box>
 );
 
@@ -81,12 +76,13 @@ const Footer = () => {
   return (
     <Box
       component="footer"
-      sx={{
-        backgroundColor: 'primary.dark',
-        color: 'rgba(255, 255, 255, 0.8)',
+      sx={(t) => ({
+        backgroundColor: t.palette.primary.dark,
+        color: 'rgba(255, 255, 255, 0.9)',
         position: 'relative',
-        py: 8,
+        py: { xs: 6, md: 8 },
         mt: 'auto',
+        overflow: 'hidden', // keep everything inside the colored area
         '&:before': {
           content: '""',
           position: 'absolute',
@@ -94,25 +90,35 @@ const Footer = () => {
           left: 0,
           right: 0,
           height: '4px',
-          background: 'linear-gradient(90deg, secondary.main 0%, primary.light 100%)',
+          backgroundImage: `linear-gradient(90deg, ${t.palette.secondary.main} 0%, ${t.palette.primary.light} 100%)`,
         },
-      }}
+      })}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ minWidth: 0 }}>
         <Grid container spacing={6}>
           {/* Brand Info */}
           <Grid xs={12} md={4}>
-            <Box sx={{ mb: 3 }}>
-              <img 
-                src="/assets/logo.png" 
-                alt="28 Degrees West Logo" 
+            <Box sx={{ mb: 3, minWidth: 0 }}>
+              <img
+                src="/assets/logo.png"
+                alt="28 Degrees West Logo"
                 width={200}
-                style={{ height: 'auto' }}
+                style={{ height: 'auto', display: 'block' }}
               />
             </Box>
-            <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.7 }}>
-              Elevating your Jamaican experience with exclusive VIP entertainment and luxury adventures 
-              designed for the discerning traveler seeking the extraordinary.
+            <Typography
+              variant="body1"
+              sx={{
+                mb: 3,
+                lineHeight: 1.7,
+                minWidth: 0,
+                wordBreak: 'break-word',
+                hyphens: 'auto',
+              }}
+            >
+              Elevating your Jamaican experience with exclusive VIP entertainment and
+              luxury adventures designed for the discerning traveler seeking the
+              extraordinary.
             </Typography>
           </Grid>
 
@@ -120,14 +126,20 @@ const Footer = () => {
           <Grid xs={12} md={4}>
             <FooterSection title="Follow Us">
               <Box sx={{ mb: 3 }}>
-                <SocialMediaLinks 
-                  size="medium" 
-                  color="default" 
-                  spacing={2}
-                />
+                <SocialMediaLinks size="medium" color="default" spacing={2} />
               </Box>
-              <Typography variant="body2" sx={{ mt: 2, color: 'rgba(255,255,255,0.7)' }}>
-                Connect with us on social media for the latest updates and exclusive offers.
+              <Typography
+                variant="body2"
+                sx={{
+                  mt: 2,
+                  color: 'rgba(255,255,255,0.75)',
+                  minWidth: 0,
+                  wordBreak: 'break-word',
+                  hyphens: 'auto',
+                }}
+              >
+                Connect with us on social media for the latest updates and exclusive
+                offers.
               </Typography>
             </FooterSection>
           </Grid>
@@ -146,25 +158,33 @@ const Footer = () => {
           {/* Contact Info */}
           <Grid xs={12} sm={6} md={4}>
             <FooterSection title="Contact Us">
-              <Box sx={{ display: 'flex', mb: 2 }}>
-                <LocationIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <Typography variant="body1">
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, minWidth: 0 }}>
+                <LocationIcon sx={{ mr: 1.5, color: 'secondary.main', flexShrink: 0 }} />
+                <Typography sx={{ minWidth: 0, wordBreak: 'break-word', hyphens: 'auto' }}>
                   South Coast, Jamaica
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', mb: 2 }}>
-                <EmailIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <FooterLink href="mailto:nikain@hotmail.com">
-                  nikain@hotmail.com
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, minWidth: 0 }}>
+                <EmailIcon sx={{ mr: 1.5, color: 'secondary.main', flexShrink: 0 }} />
+                <FooterLink
+                  href="mailto:info@28degreeswest.com"
+                  sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
+                >
+                  info@28degreeswest.com
                 </FooterLink>
               </Box>
-              <Box sx={{ display: 'flex', mb: 2 }}>
-                <PhoneIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, minWidth: 0 }}>
+                <PhoneIcon sx={{ mr: 1.5, color: 'secondary.main', flexShrink: 0 }} />
                 <FooterLink href="tel:+447398076328">+44 7398076328</FooterLink>
               </Box>
-              <Box sx={{ display: 'flex' }}>
-                <AccessTimeIcon sx={{ mr: 1.5, color: 'secondary.main', minWidth: 20 }} />
-                <Typography variant="body1">Mon - Sun: 9am - 6pm GMT</Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                <AccessTimeIcon sx={{ mr: 1.5, color: 'secondary.main', flexShrink: 0 }} />
+                <Typography sx={{ minWidth: 0, wordBreak: 'break-word', hyphens: 'auto' }}>
+                  Mon&nbsp;–&nbsp;Sun: 9am&nbsp;–&nbsp;6pm GMT
+                </Typography>
               </Box>
             </FooterSection>
           </Grid>
@@ -172,13 +192,26 @@ const Footer = () => {
           {/* Newsletter */}
           <Grid xs={12} md={4}>
             <FooterSection title="Stay Updated">
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  mb: 2,
+                  minWidth: 0,
+                  wordBreak: 'break-word',
+                  hyphens: 'auto',
+                }}
+              >
                 Subscribe to our newsletter for exclusive offers and VIP experiences.
               </Typography>
-              <Box 
-                component="form" 
-                sx={{ 
+
+              <Box
+                component="form"
+                onSubmit={(e: React.FormEvent) => e.preventDefault()}
+                sx={{
                   display: 'flex',
+                  alignItems: 'stretch',
+                  minWidth: 0,
+                  maxWidth: 520,
                   '&:focus-within button': {
                     backgroundColor: 'secondary.dark',
                   },
@@ -191,12 +224,14 @@ const Footer = () => {
                   required
                   sx={{
                     flex: 1,
+                    minWidth: 0,
                     padding: '12px 16px',
                     border: '1px solid rgba(255,255,255,0.2)',
                     background: 'rgba(255,255,255,0.1)',
                     color: 'white',
                     borderRadius: '4px 0 0 4px',
-                    fontSize: '0.9rem',
+                    fontSize: '0.95rem',
+                    lineHeight: 1.4,
                     '&:focus': {
                       outline: 'none',
                       borderColor: 'secondary.main',
@@ -210,17 +245,17 @@ const Footer = () => {
                   component="button"
                   type="submit"
                   sx={{
-                    padding: '0 20px',
+                    px: 2.5,
                     background: theme.palette.secondary.main,
                     color: theme.palette.primary.dark,
                     border: 'none',
                     borderRadius: '0 4px 4px 0',
                     cursor: 'pointer',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: '0.9rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    transition: 'all 0.3s ease',
+                    transition: 'all 0.2s ease',
                     '&:hover': {
                       backgroundColor: theme.palette.secondary.dark,
                     },
@@ -233,7 +268,7 @@ const Footer = () => {
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 5, borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ my: 5, borderColor: 'rgba(255,255,255,0.15)' }} />
 
         <Box
           sx={{
@@ -242,27 +277,33 @@ const Footer = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             pt: 1,
+            gap: 2,
+            minWidth: 0,
           }}
         >
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-            {currentYear} 28 Degrees West. All Rights Reserved.
+          <Typography
+            variant="body2"
+            sx={{ color: 'rgba(255,255,255,0.7)', minWidth: 0, textAlign: 'center' }}
+          >
+            © {currentYear} 28 Degrees West. All Rights Reserved.
           </Typography>
-          <Box sx={{ display: 'flex', gap: 3, mt: { xs: 2, sm: 0 } }}>
-            <FooterLink 
-              href="/privacy" 
-              sx={{ 
-                fontSize: '0.8rem',
-                color: 'rgba(255,255,255,0.6)',
+
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <FooterLink
+              href="/privacy"
+              sx={{
+                fontSize: '0.85rem',
+                color: 'rgba(255,255,255,0.75)',
                 '&:hover': { color: 'secondary.main' },
               }}
             >
               Privacy Policy
             </FooterLink>
-            <FooterLink 
-              href="/terms" 
-              sx={{ 
-                fontSize: '0.8rem',
-                color: 'rgba(255,255,255,0.6)',
+            <FooterLink
+              href="/terms"
+              sx={{
+                fontSize: '0.85rem',
+                color: 'rgba(255,255,255,0.75)',
                 '&:hover': { color: 'secondary.main' },
               }}
             >

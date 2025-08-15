@@ -1,12 +1,8 @@
-// TODO: Uncomment and configure Firebase when ready
-// import { useAuthState } from 'react-firebase-hooks/auth';
-// import { auth } from '../../config/firebase';
-// import { signOut } from 'firebase/auth';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
-// Create a styled Paper component for the dashboard cards
 const DashboardCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   height: '100%',
@@ -25,26 +21,13 @@ const StyledGrid = styled('div')(({ theme }) => ({
   },
 }));
 
-const AdminDashboard = () => {
-  // TODO: Uncomment when Firebase is configured
-  // const [user] = useAuthState(auth);
+const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
 
-  // TODO: Uncomment when Firebase is configured
-  // const handleSignOut = async () => {
-  //   try {
-  //     await signOut(auth);
-  //     navigate('/admin/login');
-  //   } catch (error) {
-  //     console.error('Error signing out:', error);
-  //   }
-  // };
-
-  // TODO: Uncomment when Firebase is configured
-  // if (!user) {
-  //   navigate('/admin/login');
-  //   return null;
-  // }
+  const handleSignOut = () => {
+    localStorage.removeItem('adminToken');
+    navigate('/admin/login', { replace: true });
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -52,11 +35,9 @@ const AdminDashboard = () => {
         <Typography variant="h4" component="h1">
           Admin Dashboard
         </Typography>
-        {/* TODO: Uncomment when Firebase is configured
         <Button variant="outlined" onClick={handleSignOut}>
           Sign Out
         </Button>
-        */}
       </Box>
 
       <StyledGrid>
@@ -125,11 +106,11 @@ const AdminDashboard = () => {
               Configure Stripe payment gateway settings and payment options.
             </Typography>
           </div>
-          <Button 
-            variant="contained" 
-            fullWidth 
+          <Button
+            variant="contained"
+            fullWidth
             onClick={() => navigate('/admin/stripe-config')}
-            sx={{ 
+            sx={{
               background: 'linear-gradient(45deg, #635bff 30%, #8f56ff 90%)',
               '&:hover': {
                 background: 'linear-gradient(45deg, #4a45b3 30%, #7c4dff 90%)',
@@ -145,3 +126,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

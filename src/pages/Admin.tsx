@@ -3,10 +3,12 @@ import {
   Container, Typography, Box, Button, TextField, Select, MenuItem,
   FormControl, InputLabel, Alert, Paper, IconButton
 } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useNavigate } from 'react-router-dom';
 import { Add, Close } from '@mui/icons-material';
 import axios from 'axios';
 
+// Types
 interface TourFormData {
   title: string;
   description: string;
@@ -18,6 +20,7 @@ interface TourFormData {
 
 const Admin: React.FC = () => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState<TourFormData>({
     title: '',
     description: '',
@@ -26,32 +29,34 @@ const Admin: React.FC = () => {
     features: [],
     image: null,
   });
+
   const [featureInput, setFeatureInput] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Text inputs
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = event.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: name === 'price' ? Number(value) : value,
     }));
   };
 
-  const handleDurationChange = (
-    event: React.ChangeEvent<{ value: unknown }>
-  ) => {
-    setFormData(prev => ({
+  // Select (MUI)
+  const handleDurationChange = (event: SelectChangeEvent<string>) => {
+    setFormData((prev) => ({
       ...prev,
       duration: event.target.value as string,
     }));
   };
 
+  // Features add/remove
   const handleFeatureAdd = () => {
     if (featureInput.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         features: [...prev.features, featureInput.trim()],
       }));
@@ -60,18 +65,19 @@ const Admin: React.FC = () => {
   };
 
   const handleFeatureRemove = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       features: prev.features.filter((_, i) => i !== index),
     }));
   };
 
+  // Image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFormData(prev => ({ ...prev, image: e.target.files![0] }));
-    }
+    const f = e.target.files?.[0];
+    if (f) setFormData((prev) => ({ ...prev, image: f }));
   };
 
+  // Submit
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -81,22 +87,21 @@ const Admin: React.FC = () => {
     data.append('duration', formData.duration);
     data.append('price', String(formData.price));
     formData.features.forEach((f, i) => data.append(`features[${i}]`, f));
-    if (formData.image) {
-      data.append('image', formData.image);
-    }
+    if (formData.image) data.append('image', formData.image);
 
     try {
-      const res = await axios.post(
+      await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/v1/admin/tours`,
         data,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
-            // Add authorization if needed:
-            // Authorization: `Bearer ${adminToken}`
+            // Authorization: `Bearer ${adminToken}`,
           },
+          withCredentials: true,
         }
       );
+
       setSuccessMessage('Tour successfully created!');
       setErrorMessage('');
       setFormData({
@@ -113,6 +118,9 @@ const Admin: React.FC = () => {
     }
   };
 
+  const durationLabelId = 'duration-label';
+  const durationSelectId = 'duration-select';
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
@@ -121,16 +129,8 @@ const Admin: React.FC = () => {
             Admin Dashboard
           </Typography>
 
-          {successMessage && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {successMessage}
-            </Alert>
-          )}
-          {errorMessage && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {errorMessage}
-            </Alert>
-          )}
+          {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
+          {errorMessage && <Alert severity="error" sx={{ mb: 2 }}>{errorMessage}</Alert>}
 
           <Typography variant="h6" gutterBottom>
             Create New Tour
@@ -159,13 +159,18 @@ const Admin: React.FC = () => {
               />
 
               <FormControl fullWidth required>
-                <InputLabel>Duration</InputLabel>
+                <InputLabel id={durationLabelId}>Duration</InputLabel>
                 <Select
+                  labelId={durationLabelId}
+                  id={durationSelectId}
                   name="duration"
+                  label="Duration"
                   value={formData.duration}
                   onChange={handleDurationChange}
                 >
-                  <MenuItem value="">Select Duration</MenuItem>
+                  <MenuItem value="">
+                    <em>Select Duration</em>
+                  </MenuItem>
                   <MenuItem value="Half Day">Half Day</MenuItem>
                   <MenuItem value="Full Day">Full Day</MenuItem>
                   <MenuItem value="Multi-Day">Multi-Day</MenuItem>
@@ -175,6 +180,7 @@ const Admin: React.FC = () => {
               <TextField
                 fullWidth
                 type="number"
+                inputProps={{ step: '0.01', min: 0 }}
                 label="Price"
                 name="price"
                 value={formData.price}
@@ -193,14 +199,15 @@ const Admin: React.FC = () => {
                     onChange={(e) => setFeatureInput(e.target.value)}
                     placeholder="Add feature"
                   />
-                  <IconButton onClick={handleFeatureAdd} color="primary">
+                  <IconButton onClick={handleFeatureAdd} color="primary" aria-label="add-feature">
                     <Add />
                   </IconButton>
                 </Box>
+
                 <Box display="flex" flexDirection="column" gap={1}>
                   {formData.features.map((feature, index) => (
                     <Box
-                      key={index}
+                      key={`${feature}-${index}`}
                       display="flex"
                       alignItems="center"
                       justifyContent="space-between"
@@ -210,6 +217,7 @@ const Admin: React.FC = () => {
                       <IconButton
                         size="small"
                         onClick={() => handleFeatureRemove(index)}
+                        aria-label={`remove-feature-${index}`}
                       >
                         <Close />
                       </IconButton>
@@ -220,7 +228,12 @@ const Admin: React.FC = () => {
 
               <Button variant="outlined" component="label">
                 Upload Tour Image
-                <input type="file" hidden onChange={handleImageChange} />
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
               </Button>
 
               <Button variant="contained" type="submit" color="primary">
@@ -238,4 +251,7 @@ const Admin: React.FC = () => {
 };
 
 export default Admin;
+
+
+
 

@@ -16,21 +16,31 @@ import { createServer } from 'http';
 import User from './src/models/User.model.js';
 
 // --- Routers (ensure filenames are correct)
-import paymentsRouter from './src/routes/payment.routes.js';     // normal payment routes (NO webhook here)
+import paymentsRouter from './src/routes/payment.routes.js'; // normal payment routes (NO webhook here)
 import catalogRouter from './src/routes/catalog.routes.js';
 import bookingsRouter from './src/routes/booking.routes.js';
 import { stripeWebhookHandler } from './src/routes/payment.webhook.js'; // webhook-only handler
+import contentRouter from './src/routes/content.routes.js';
 
 // --- Lazy imports (won’t block boot)
 let errorHandler, logger, apiRoutes, aiRoutes, adminAuthRoutes;
+let adminSettingsRoutes, publicSettingsRoutes;
+
 (async () => {
   try {
     ({ errorHandler } = await import('./src/middleware/error.middleware.js'));
     const loggerModule = await import('./src/utils/logger.js').catch(() => null);
     logger = loggerModule?.default || console;
+
+    // Core feature routes
     ({ default: apiRoutes } = await import('./src/routes/api.routes.js'));
     ({ default: aiRoutes } = await import('./src/routes/ai.routes.js'));
     ({ default: adminAuthRoutes } = await import('./src/routes/admin/auth.routes.js'));
+
+    // Settings (admin + public)
+    ({ default: adminSettingsRoutes } = await import('./src/routes/admin/settings.routes.js').catch(() => ({ default: null })));
+    ({ default: publicSettingsRoutes } = await import('./src/routes/public/settings.routes.js').catch(() => ({ default: null })));
+
     logger.info?.('✅ Lazy modules loaded');
   } catch (err) {
     console.error('⚠️ Lazy load failure:', err);
@@ -111,7 +121,8 @@ app.get('/', (_req, res) => {
 });
 
 // -------- Business routers --------
-// Normal payments routes (JSON-parsed)
+
+// Payments (JSON-parsed)
 app.use('/api/v1/payments', paymentsRouter);
 
 // Public catalog (gate on DB readiness)
@@ -119,6 +130,12 @@ app.use(
   '/api/v1/catalog',
   (req, res, next) => (dbReady ? next() : res.status(503).json({ error: 'Database not ready' })),
   catalogRouter
+);
+// CMS Content (gate on DB readiness)
+app.use(
+  '/api/v1/content',
+  (req, res, next) => (dbReady ? next() : res.status(503).json({ error: 'Database not ready' })),
+  contentRouter
 );
 
 // Bookings (gate on DB readiness)
@@ -128,7 +145,17 @@ app.use(
   bookingsRouter
 );
 
-// Mount lazy routes even if not yet loaded; return 503 until ready
+// Public settings
+app.use('/api/v1/settings', (req, res, next) =>
+  publicSettingsRoutes ? publicSettingsRoutes(req, res, next) : res.status(503).json({ error: 'Settings unavailable' })
+);
+
+// Admin settings
+app.use('/api/v1/admin/settings', (req, res, next) =>
+  adminSettingsRoutes ? adminSettingsRoutes(req, res, next) : res.status(503).json({ error: 'Admin settings unavailable' })
+);
+
+// Lazy routes (return 503 until ready)
 app.use('/api/v1/admin/auth', (req, res, next) =>
   adminAuthRoutes ? adminAuthRoutes(req, res, next) : res.status(503).json({ error: 'Auth routes unavailable' })
 );
@@ -191,8 +218,7 @@ async function connectMongo() {
  * Uses ADMIN_EMAIL and ADMIN_PASSWORD env vars.
  * - Creates the admin if missing
  * - Promotes the existing user at that email to role 'admin'
- * This empowers the admin to update/remove all site content wherever
- * your routers use `authorize('admin')`.
+ * Admins can update/remove all content wherever routes use `authorize('admin')`.
  */
 async function ensureDefaultAdmin() {
   try {
@@ -208,17 +234,15 @@ async function ensureDefaultAdmin() {
     let admin = await User.findOne({ email }).select('_id role');
 
     if (!admin) {
-      admin = await User.create({
+      await User.create({
         name: 'Administrator',
         email,
         password: passwordEnv,
-        passwordConfirm: passwordEnv, // required by schema
         role: 'admin',
-        active: true,
       });
       (logger || console).info?.(`👑 Default admin created: ${email}`);
     } else if (admin.role !== 'admin') {
-      await User.updateOne({ _id: admin._id }, { $set: { role: 'admin', active: true } });
+      await User.updateOne({ _id: admin._id }, { $set: { role: 'admin' } });
       (logger || console).info?.(`👑 Existing user promoted to admin: ${email}`);
     } else {
       (logger || console).info?.(`✅ Admin present: ${email}`);

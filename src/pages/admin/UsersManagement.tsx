@@ -25,141 +25,170 @@ const defaultFormData: UserFormDialogData = {
 
 const UsersManagement: React.FC = () => {
   const { user: currentUser, isAdmin } = useAuth();
-  
+
   // State management
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [pagination, setPagination] = useState({
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
+
+  const [pagination, setPagination] = useState<{ page: number; rowsPerPage: number; count: number }>({
     page: 0,
     rowsPerPage: 10,
     count: 0
   });
+
   const [formData, setFormData] = useState<UserFormDialogData>(defaultFormData);
-  const [snackbar, setSnackbar] = useState({
+
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error' | 'info' | 'warning'
+    severity: 'success'
   });
 
-  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  }, []);
+  const showSnackbar = useCallback(
+    (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+      setSnackbar({ open: true, message, severity });
+    },
+    []
+  );
 
+  // Fetch users (server-side pagination per your api.ts)
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await userService.getAllUsers(
-        pagination.page + 1,
-        pagination.rowsPerPage,
-        {}
-      );
-      // Ensure each user has an id property
-      const usersWithId = response.data.map(user => ({
-        ...user,
-        id: user.id || ''
+      setError(null);
+
+      const page = pagination.page + 1; // API is 1-based
+      const limit = pagination.rowsPerPage;
+
+      const { data, total } = await userService.getAllUsers(page, limit, {});
+
+      const normalized: User[] = (data || []).map((u: any) => ({
+        ...u,
+        id: u.id || u._id || '' // ensure an id
       }));
-      
-      setUsers(usersWithId);
-      setPagination(prev => ({
-        ...prev,
-        count: response.total || 0
-      }));
+
+      setUsers(normalized);
+      setPagination((prev) => ({ ...prev, count: total || normalized.length }));
     } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      setError(error.response?.data?.message || 'Failed to fetch users');
-      showSnackbar(error.response?.data?.message || 'Failed to fetch users', 'error');
+      const ax = err as AxiosError<{ message?: string }>;
+      const msg = ax.response?.data?.message || 'Failed to fetch users';
+      setError(msg);
+      showSnackbar(msg, 'error');
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.rowsPerPage]);
+  }, [pagination.page, pagination.rowsPerPage, showSnackbar]);
 
-  const handleSaveUser = async (formData: UserFormDialogData) => {
+  // Create / Update user
+  const handleSaveUser = async (fd: UserFormDialogData) => {
     try {
       setLoading(true);
-      
+
       if (editMode && selectedUser) {
-        // Update existing user
-        const { password, confirmPassword, ...updateData } = formData;
+        // Update existing
+        const { password, confirmPassword, firstName, lastName, ...rest } = fd;
+        const updateData: Partial<ApiUser> = {
+          ...rest,
+          name: `${firstName} ${lastName}`.trim()
+        };
         await userService.updateUser(selectedUser.id, updateData);
         showSnackbar('User updated successfully');
-      } else if (formData.password) {
-        // Create new user
-        const { confirmPassword, ...createData } = formData;
+      } else {
+        // Create new (password required)
+        if (!fd.password) throw new Error('Password is required for new users');
+        const { confirmPassword, firstName, lastName, ...rest } = fd;
         await userService.createUser({
-          ...createData,
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          password: formData.password
+          ...rest,
+          name: `${firstName} ${lastName}`.trim(),
+          password: fd.password
         });
         showSnackbar('User created successfully');
-      } else {
-        throw new Error('Password is required for new users');
       }
-      
+
       setOpenDialog(false);
-      fetchUsers();
+      await fetchUsers();
     } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      showSnackbar(error.response?.data?.message || 'Failed to save user', 'error');
+      const ax = err as AxiosError<{ message?: string }>;
+      showSnackbar(ax.response?.data?.message || 'Failed to save user', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Toggle status (active <-> inactive)
   const handleStatusToggle = async (userId: string, currentStatus: User['status']) => {
     try {
       setLoading(true);
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const newStatus: User['status'] = currentStatus === 'active' ? 'inactive' : 'active';
+
+      // Use the dedicated endpoint your api.ts exposes
       await userService.updateUserStatus(userId, newStatus);
-      
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, status: newStatus } : user
-        )
-      );
-      
+
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
       showSnackbar(`User status updated to ${newStatus}`);
     } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      showSnackbar(error.response?.data?.message || 'Failed to update user status', 'error');
+      const ax = err as AxiosError<{ message?: string }>;
+      showSnackbar(ax.response?.data?.message || 'Failed to update user status', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Delete user (prevent self-delete)
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const selfId = (currentUser as any)?.id || (currentUser as any)?.uid;
+      if (selfId && userId === selfId) {
+        showSnackbar("You can't delete your own account while logged in.", 'warning');
+        return;
+      }
+
+      setLoading(true);
+      await userService.deleteUser(userId);
+      showSnackbar('User deleted successfully');
+      await fetchUsers();
+    } catch (err) {
+      const ax = err as AxiosError<{ message?: string }>;
+      showSnackbar(ax.response?.data?.message || 'Failed to delete user', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Pagination handlers
   const handlePageChange = (_event: unknown, newPage: number) => {
-    setPagination(prev => ({
-      ...prev,
-      page: newPage
-    }));
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPagination(prev => ({
-      ...prev,
-      rowsPerPage: parseInt(event.target.value, 10),
-      page: 0
-    }));
+    const rows = parseInt(event.target.value, 10);
+    setPagination((prev) => ({ ...prev, rowsPerPage: rows, page: 0 }));
   };
 
-  // Update form data when selected user changes
+  // When editing, hydrate the form from the selected user
   useEffect(() => {
     if (editMode && selectedUser) {
       const nameParts = selectedUser.name ? selectedUser.name.split(' ') : ['', ''];
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
-      
+
       setFormData({
         firstName,
         lastName,
         email: selectedUser.email || '',
-        phone: selectedUser.phone || '',
+        phone: (selectedUser as any).phone || '',
         role: selectedUser.role || 'user',
-        status: selectedUser.status || 'active',
-        joinDate: selectedUser.joinDate || new Date().toISOString(),
+        status: (selectedUser.status as any) || 'active',
+        joinDate: (selectedUser as any).joinDate || new Date().toISOString(),
         password: '',
         confirmPassword: ''
       });
@@ -168,29 +197,17 @@ const UsersManagement: React.FC = () => {
     }
   }, [editMode, selectedUser]);
 
-  const handleDeleteUser = async (userId: string) => {
-    try {
-      setLoading(true);
-      await userService.deleteUser(userId);
-      showSnackbar('User deleted successfully');
-      fetchUsers();
-    } catch (err) {
-      const error = err as AxiosError<{ message?: string }>;
-      showSnackbar(error.response?.data?.message || 'Failed to delete user', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Kick off initial fetch and whenever page/rows change
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
+  // Handlers to open dialog in edit mode
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setEditMode(true);
     setOpenDialog(true);
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   return (
     <Paper sx={{ p: 3 }}>
@@ -222,13 +239,13 @@ const UsersManagement: React.FC = () => {
         users={users}
         loading={loading}
         pagination={pagination}
-        currentUserId={currentUser?.uid || ''}
+        currentUserId={(currentUser as any)?.id || (currentUser as any)?.uid || ''}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
         onEdit={handleEditUser}
         onDelete={handleDeleteUser}
         onStatusToggle={handleStatusToggle}
-        isAdmin={isAdmin || false}
+        isAdmin={!!isAdmin}
       />
 
       <UserFormDialog
@@ -238,23 +255,20 @@ const UsersManagement: React.FC = () => {
         formData={formData}
         loading={loading}
         editMode={editMode}
-        onInputChange={(e) => {
+        onInputChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
           const { name, value } = e.target;
-          setFormData(prev => ({
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        }}
+        onRoleChange={(e: React.ChangeEvent<{ value: unknown }> | any) => {
+          setFormData((prev) => ({
             ...prev,
-            [name]: value
+            role: (e.target?.value || 'user') as 'user' | 'admin' | 'guide'
           }));
         }}
-        onRoleChange={(e) => {
-          setFormData(prev => ({
+        onStatusChange={(e: React.ChangeEvent<{ value: unknown }> | any) => {
+          setFormData((prev) => ({
             ...prev,
-            role: e.target.value as 'user' | 'admin' | 'guide'
-          }));
-        }}
-        onStatusChange={(e) => {
-          setFormData(prev => ({
-            ...prev,
-            status: e.target.value as 'active' | 'inactive' | 'suspended'
+            status: (e.target?.value || 'active') as 'active' | 'inactive' | 'suspended'
           }));
         }}
       />
@@ -262,11 +276,11 @@ const UsersManagement: React.FC = () => {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert 
+        <Alert
           severity={snackbar.severity}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
         >
           {snackbar.message}
         </Alert>
@@ -276,3 +290,4 @@ const UsersManagement: React.FC = () => {
 };
 
 export default UsersManagement;
+

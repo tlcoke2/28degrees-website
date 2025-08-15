@@ -1,6 +1,7 @@
+// src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -14,6 +15,13 @@ import { CookieConsentProvider } from './contexts/CookieConsentContext';
 import theme from './theme/theme';
 import './index.css';
 
+// If using a custom domain at root (e.g., https://28degreeswest.com), keep "/"
+// If deploying to a repo path (e.g., https://username.github.io/28degrees-website/), set "/28degrees-website/"
+const BASENAME =
+  import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/'
+    ? import.meta.env.BASE_URL
+    : '/';
+
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -23,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <SnackbarProvider maxSnack={3}>
-            <Router>
+            <BrowserRouter basename={BASENAME}>
               <AuthProvider>
                 <UserProvider>
                   <CookieConsentProvider>
@@ -31,11 +39,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   </CookieConsentProvider>
                 </UserProvider>
               </AuthProvider>
-            </Router>
+            </BrowserRouter>
           </SnackbarProvider>
-          <ReactQueryDevtools initialIsOpen={false} />
+          {import.meta.env.PROD ? null : <ReactQueryDevtools initialIsOpen={false} />}
         </ThemeProvider>
       </LocalizationProvider>
     </QueryClientProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

@@ -1,30 +1,16 @@
+// src/components/AIAssistant.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Box, 
-  IconButton, 
-  Paper, 
-  TextField, 
-  Typography, 
-  Avatar, 
-  ListItem, 
-  ListItemAvatar, 
-  ListItemText, 
-  Divider,
-  Fade,
-  CircularProgress,
-  Tooltip,
+import {
+  Box, IconButton, Paper, TextField, Typography, Avatar, ListItem,
+  ListItemAvatar, ListItemText, Divider, Fade, CircularProgress, Tooltip,
   Collapse
 } from '@mui/material';
-import { 
-  Send as SendIcon, 
-  Close as CloseIcon, 
-  SmartToy as AIIcon,
-  Person as UserIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  HelpOutline as HelpIcon
+import {
+  Send as SendIcon, Close as CloseIcon, SmartToy as AIIcon,
+  Person as UserIcon, HelpOutline as HelpIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { useAuth } from '../contexts/UserContext';
 
 interface Message {
   id: string;
@@ -100,17 +86,25 @@ const HelpButton = styled(IconButton)(({ theme }) => ({
   boxShadow: theme.shadows[10],
 }));
 
-// Mock AI responses
-const mockResponses = [
-  "I can help you with booking events, checking availability, and answering questions about our services.",
-  "To book an event, simply go to the event page and click the 'Book Now' button. Follow the steps to complete your booking.",
-  "Our cancellation policy allows for a full refund up to 7 days before the event. After that, a 50% fee may apply.",
-  "You can check your booking status by logging into your account and visiting the 'My Bookings' section.",
-  "We accept all major credit cards, PayPal, and bank transfers for payments.",
-  "For any urgent inquiries, please contact our support team at support@28degreeswest.com or call +1 (555) 123-4567.",
-];
+function getApiBase(): string {
+  const base = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL;
+  if (!base) throw new Error('API base URL is not configured (VITE_API_BASE_URL).');
+  return String(base).replace(/\/+$/, '');
+}
+
+function buildHistory(messages: Message[]) {
+  // Compact chat history for fallback completion endpoint
+  return messages
+    .filter(m => m.text && (m.sender === 'user' || m.sender === 'ai'))
+    .map(m => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text,
+    }));
+}
 
 const AIAssistant: React.FC = () => {
+  const { /* user, */ } = useAuth();
+  const token = localStorage.getItem('token') || '';
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [input, setInput] = useState('');
@@ -119,99 +113,132 @@ const AIAssistant: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Initial welcome message
+  // Load initial welcome message
   useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([
-        {
-          id: '1',
-          text: "Hello! I'm your 28 Degrees assistant. How can I help you today?",
-          sender: 'ai',
-          timestamp: new Date(),
-        },
+        { id: '1', text: "Hello! I'm your 28 Degrees assistant. How can I help you today?", sender: 'ai', timestamp: new Date() },
       ]);
     }
   }, [open]);
 
-  // Auto-scroll to bottom when messages change
+  // Scroll to bottom on new messages
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const fallbackComplete = async (text: string) => {
+    // Non-streaming fallback to /api/v1/ai/chat
+    try {
+      const base = getApiBase();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+      const authToken =
+        (typeof window !== 'undefined' && (localStorage.getItem('adminToken') || localStorage.getItem('token'))) ||
+        token ||
+        '';
+
+      const res = await fetch(`${base}/api/v1/ai/chat`, {
+        method: 'POST',
+        credentials: 'include',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({
+          message: text,
+          history: buildHistory(messages),
+        }),
+      });
+
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const msg = await res.text().catch(() => '');
+        throw new Error(`Fallback AI error: ${res.status} ${msg}`);
+      }
+      const data = await res.json();
+      // Expecting shape: { data: { text: string } } or { text: string }
+      const reply = data?.data?.text || data?.text || data?.message || 'Sorry, I could not get a response.';
+      return String(reply);
+    } catch (err: any) {
+      return `⚠️ AI service unavailable. ${err?.message || 'Please try again later.'}`;
+    }
   };
 
-  const handleOpen = () => {
-    setOpen(true);
-    setMinimized(false);
-  };
+  const sendMessage = async (text: string) => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsTyping(true);
 
-  const handleClose = () => {
-    setOpen(false);
-  };
+    // 1) Try SSE streaming first
+    let usedFallback = false;
+    try {
+      const base = getApiBase();
+      const url = `${base}/api/v1/ai/chat/stream?message=${encodeURIComponent(text)}`;
 
-  const toggleMinimize = () => {
-    setMinimized(!minimized);
-  };
+      const eventSource = new EventSource(url, { withCredentials: true });
+      let aiText = '';
+      const aiMessageId = (Date.now() + 1).toString();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
+      const closeTyping = () => setIsTyping(false);
+
+      eventSource.onmessage = (event) => {
+        if (event.data === '[DONE]') {
+          eventSource.close();
+          closeTyping();
+          return;
+        }
+        aiText += event.data;
+        setMessages(prev => {
+          const exists = prev.find(m => m.id === aiMessageId);
+          if (exists) {
+            return prev.map(m => (m.id === aiMessageId ? { ...m, text: aiText } : m));
+          }
+          return [...prev, { id: aiMessageId, text: aiText, sender: 'ai', timestamp: new Date() }];
+        });
+      };
+
+      eventSource.onerror = async () => {
+        // SSE failed → fallback to non-streaming
+        eventSource.close();
+        usedFallback = true;
+        const reply = await fallbackComplete(text);
+        setMessages(prev => [...prev, { id: (Date.now() + 2).toString(), text: reply, sender: 'ai', timestamp: new Date() }]);
+        setIsTyping(false);
+      };
+    } catch {
+      // 2) If SSE setup itself threw, fallback
+      const reply = await fallbackComplete(text);
+      setMessages(prev => [...prev, { id: (Date.now() + 3).toString(), text: reply, sender: 'ai', timestamp: new Date() }]);
+      setIsTyping(false);
+    } finally {
+      // Safety: if neither SSE nor fallback resolved (very rare), stop spinner
+      setTimeout(() => {
+        if (isTyping && !usedFallback) setIsTyping(false);
+      }, 30000);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: input,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
-
-    // Simulate AI response after a delay
-    setTimeout(() => {
-      const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: randomResponse,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1000 + Math.random() * 1000); // Random delay between 1-2 seconds
+    if (input.trim()) sendMessage(input.trim());
   };
-
-  const handleQuickQuestion = (question: string) => {
-    setInput(question);
-    // Auto-submit after a short delay to show the typing indicator
-    setTimeout(() => {
-      const form = document.createElement('form');
-      const event = new Event('submit', { bubbles: true, cancelable: true });
-      form.dispatchEvent(event);
-    }, 100);
-  };
-
-  const suggestedQuestions = [
-    "How do I book an event?",
-    "What's your cancellation policy?",
-    "How can I contact support?"
-  ];
 
   return (
     <>
       {!open && (
         <Tooltip title="Need help? Ask our AI assistant">
-          <HelpButton 
-            color="primary" 
-            onClick={handleOpen}
+          <HelpButton
+            onClick={() => { setOpen(true); setMinimized(false); }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -221,194 +248,69 @@ const AIAssistant: React.FC = () => {
       )}
 
       <Fade in={open}>
-        <StyledPaper 
-          elevation={3}
-          sx={{ 
+        <StyledPaper
+          sx={{
             transform: minimized ? 'translateY(calc(100% - 48px))' : 'none',
             transition: 'transform 0.3s ease-in-out',
             bottom: minimized ? '0' : '16px',
             maxHeight: minimized ? '48px' : '70vh',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: minimized ? 'translateY(calc(100% - 56px))' : 'none',
-            }
           }}
         >
-          <Header 
-            onClick={toggleMinimize}
-            sx={{
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: (theme) => theme.palette.primary.dark,
-              },
-              transition: 'background-color 0.2s ease-in-out',
-            }}
-          >
+          <Header onClick={() => setMinimized(!minimized)}>
             <AIIcon sx={{ mr: 1 }} />
             <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
               AI Assistant {minimized ? '(Minimized)' : ''}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Tooltip title={minimized ? 'Maximize' : 'Minimize'}>
-                <IconButton 
-                  size="small" 
-                  color="inherit"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMinimize();
-                  }}
-                >
-                  {minimized ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Close">
-                <IconButton 
-                  size="small" 
-                  color="inherit"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClose();
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
+            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
           </Header>
-          
-          <Collapse in={!minimized} timeout="auto" unmountOnExit>
+
+          <Collapse in={!minimized}>
             <MessagesContainer>
-              {messages.map((message) => (
-                <React.Fragment key={message.id}>
-                  <ListItem 
-                    alignItems="flex-start" 
-                    sx={{
-                      flexDirection: message.sender === 'user' ? 'row-reverse' : 'row',
-                      textAlign: message.sender === 'user' ? 'right' : 'left',
-                      pl: message.sender === 'ai' ? 0 : 4,
-                      pr: message.sender === 'user' ? 0 : 4,
-                    }}
-                  >
-                    <ListItemAvatar sx={{ minWidth: '40px' }}>
-                      {message.sender === 'ai' ? (
-                        <StyledAvatar sx={{ bgcolor: 'primary.main' }}>
-                          <AIIcon />
-                        </StyledAvatar>
-                      ) : (
-                        <StyledAvatar sx={{ bgcolor: 'grey.500' }}>
-                          <UserIcon />
-                        </StyledAvatar>
-                      )}
+              {messages.map((m) => (
+                <React.Fragment key={m.id}>
+                  <ListItem sx={{ flexDirection: m.sender === 'user' ? 'row-reverse' : 'row' }}>
+                    <ListItemAvatar>
+                      <StyledAvatar sx={{ bgcolor: m.sender === 'ai' ? 'primary.main' : 'grey.500' }}>
+                        {m.sender === 'ai' ? <AIIcon /> : <UserIcon />}
+                      </StyledAvatar>
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            display: 'inline-block',
-                            p: 1.5,
-                            borderRadius: message.sender === 'ai' 
-                              ? '0 16px 16px 16px' 
-                              : '16px 0 16px 16px',
-                            backgroundColor: message.sender === 'ai' 
-                              ? 'action.hover' 
-                              : 'primary.main',
-                            color: message.sender === 'ai' 
-                              ? 'text.primary' 
-                              : 'primary.contrastText',
-                            maxWidth: '80%',
-                            wordBreak: 'break-word',
-                            textAlign: 'left',
-                          }}
-                        >
-                          {message.text}
+                        <Paper sx={{
+                          p: 1.5,
+                          borderRadius: m.sender === 'ai' ? '0 16px 16px 16px' : '16px 0 16px 16px',
+                          bgcolor: m.sender === 'ai' ? 'action.hover' : 'primary.main',
+                          color: m.sender === 'ai' ? 'text.primary' : 'primary.contrastText',
+                        }}>
+                          {m.text}
                         </Paper>
                       }
-                      secondary={
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: 'block',
-                            mt: 0.5,
-                            textAlign: message.sender === 'user' ? 'right' : 'left',
-                          }}
-                        >
-                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Typography>
-                      }
-                      secondaryTypographyProps={{
-                        component: 'div',
-                      }}
-                      sx={{ m: 0 }}
+                      secondary={<Typography variant="caption">{m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography>}
                     />
                   </ListItem>
-                  <Divider variant="inset" component="li" sx={{ my: 1 }} />
+                  <Divider sx={{ my: 1 }} />
                 </React.Fragment>
               ))}
-              
               {isTyping && (
                 <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, pl: 6 }}>
                   <CircularProgress size={20} sx={{ mr: 1.5 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    Typing...
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">Typing...</Typography>
                 </Box>
               )}
-              
-              {messages.length <= 1 && (
-                <Box sx={{ mt: 2, px: 2 }}>
-                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                    Try asking me:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {suggestedQuestions.map((question, index) => (
-                      <Paper
-                        key={index}
-                        elevation={0}
-                        onClick={() => handleQuickQuestion(question)}
-                        sx={{
-                          p: 1,
-                          borderRadius: 2,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
-                          },
-                        }}
-                      >
-                        <Typography variant="caption">
-                          {question}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-              
               <div ref={messagesEndRef} />
             </MessagesContainer>
-            
+
             <form onSubmit={handleSubmit}>
               <InputContainer>
                 <StyledTextField
                   placeholder="Type your message..."
-                  variant="outlined"
-                  size="small"
-                  fullWidth
                   value={input}
-                  onChange={handleInputChange}
-                  autoComplete="off"
+                  onChange={(e) => setInput(e.target.value)}
                   disabled={isTyping}
                 />
-                <IconButton 
-                  color="primary" 
-                  type="submit" 
-                  disabled={!input.trim() || isTyping}
-                  sx={{ ml: 1 }}
-                  aria-label="Send message"
-                >
+                <IconButton type="submit" disabled={!input.trim() || isTyping}>
                   <SendIcon />
                 </IconButton>
               </InputContainer>
