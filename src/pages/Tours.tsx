@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Button, 
-  Card, 
-  CardContent, 
-  CardMedia, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
+import {
+  Container,
+  Typography,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardMedia,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   DialogActions,
   TextField,
   FormControl,
@@ -47,7 +47,7 @@ const Tours: React.FC = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!name.trim()) newErrors.name = 'Name is required';
     if (!email.trim()) {
       newErrors.email = 'Email is required';
@@ -57,7 +57,7 @@ const Tours: React.FC = () => {
     if (!phone.trim()) newErrors.phone = 'Phone number is required';
     if (!bookingDate) newErrors.bookingDate = 'Please select a date';
     if (participants < 1) newErrors.participants = 'At least one participant is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -69,7 +69,7 @@ const Tours: React.FC = () => {
 
   const handleProceedToCheckout = () => {
     if (!validateForm() || !selectedTour) return;
-    
+
     navigate('/checkout', {
       state: {
         amount: selectedTour.price * participants,
@@ -195,20 +195,19 @@ const Tours: React.FC = () => {
                   </ul>
                 </Box>
                 <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
+                  <Button
+                    variant="contained"
+                    color="primary"
                     fullWidth
                     onClick={() => handleBookNow(tour)}
                     sx={{ flex: 1 }}
                   >
                     Book Now
                   </Button>
-                  <SocialShare 
+                  <SocialShare
                     url={window.location.href}
                     title={`Check out ${tour.title} - 28 Degrees West`}
                     description={tour.description.substring(0, 100) + '...'}
-                    hashtags={['28DegreesWest', 'JamaicaTravel', 'Adventure']}
                     variant="icon"
                     size="small"
                   />
@@ -323,9 +322,9 @@ const Tours: React.FC = () => {
           <Button onClick={handleCloseDialog} color="inherit">
             Cancel
           </Button>
-          <Button 
-            onClick={handleProceedToCheckout} 
-            variant="contained" 
+          <Button
+            onClick={handleProceedToCheckout}
+            variant="contained"
             color="primary"
             size="large"
           >

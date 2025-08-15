@@ -20,14 +20,14 @@ const defaultFormData: UserFormDialogData = {
   status: 'active',
   password: '',
   confirmPassword: '',
-  joinDate: new Date().toISOString()
+  joinDate: new Date().toISOString(),
 };
 
 const UsersManagement: React.FC = () => {
   const { user: currentUser, isAdmin } = useAuth();
 
   // State management
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // visible page slice
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ const UsersManagement: React.FC = () => {
   const [pagination, setPagination] = useState<{ page: number; rowsPerPage: number; count: number }>({
     page: 0,
     rowsPerPage: 10,
-    count: 0
+    count: 0,
   });
 
   const [formData, setFormData] = useState<UserFormDialogData>(defaultFormData);
@@ -50,7 +50,7 @@ const UsersManagement: React.FC = () => {
   }>({
     open: false,
     message: '',
-    severity: 'success'
+    severity: 'success',
   });
 
   const showSnackbar = useCallback(
@@ -60,24 +60,26 @@ const UsersManagement: React.FC = () => {
     []
   );
 
-  // Fetch users (server-side pagination per your api.ts)
+  // Fetch users (client-side pagination to match userService signature)
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const page = pagination.page + 1; // API is 1-based
-      const limit = pagination.rowsPerPage;
+      // your userService.getAllUsers accepts 0–1 arguments and returns User[]
+      const all = await userService.getAllUsers();
 
-      const { data, total } = await userService.getAllUsers(page, limit, {});
-
-      const normalized: User[] = (data || []).map((u: any) => ({
+      // Ensure each user has an id (fallback to _id)
+      const allWithId: User[] = (all || []).map((u: any) => ({
         ...u,
-        id: u.id || u._id || '' // ensure an id
+        id: u.id || u._id || '',
       }));
 
-      setUsers(normalized);
-      setPagination((prev) => ({ ...prev, count: total || normalized.length }));
+      const start = pagination.page * pagination.rowsPerPage;
+      const end = start + pagination.rowsPerPage;
+
+      setUsers(allWithId.slice(start, end));
+      setPagination((prev) => ({ ...prev, count: allWithId.length }));
     } catch (err) {
       const ax = err as AxiosError<{ message?: string }>;
       const msg = ax.response?.data?.message || 'Failed to fetch users';
@@ -98,7 +100,7 @@ const UsersManagement: React.FC = () => {
         const { password, confirmPassword, firstName, lastName, ...rest } = fd;
         const updateData: Partial<ApiUser> = {
           ...rest,
-          name: `${firstName} ${lastName}`.trim()
+          name: `${firstName} ${lastName}`.trim(),
         };
         await userService.updateUser(selectedUser.id, updateData);
         showSnackbar('User updated successfully');
@@ -109,7 +111,7 @@ const UsersManagement: React.FC = () => {
         await userService.createUser({
           ...rest,
           name: `${firstName} ${lastName}`.trim(),
-          password: fd.password
+          password: fd.password,
         });
         showSnackbar('User created successfully');
       }
@@ -124,14 +126,13 @@ const UsersManagement: React.FC = () => {
     }
   };
 
-  // Toggle status (active <-> inactive)
+  // Toggle status (active <-> inactive) via updateUser (no updateUserStatus in userService)
   const handleStatusToggle = async (userId: string, currentStatus: User['status']) => {
     try {
       setLoading(true);
       const newStatus: User['status'] = currentStatus === 'active' ? 'inactive' : 'active';
 
-      // Use the dedicated endpoint your api.ts exposes
-      await userService.updateUserStatus(userId, newStatus);
+      await userService.updateUser(userId, { status: newStatus } as Partial<ApiUser>);
 
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)));
       showSnackbar(`User status updated to ${newStatus}`);
@@ -190,7 +191,7 @@ const UsersManagement: React.FC = () => {
         status: (selectedUser.status as any) || 'active',
         joinDate: (selectedUser as any).joinDate || new Date().toISOString(),
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
       });
     } else {
       setFormData(defaultFormData);
@@ -259,16 +260,16 @@ const UsersManagement: React.FC = () => {
           const { name, value } = e.target;
           setFormData((prev) => ({ ...prev, [name]: value }));
         }}
-        onRoleChange={(e: React.ChangeEvent<{ value: unknown }> | any) => {
+        onRoleChange={(e: any) => {
           setFormData((prev) => ({
             ...prev,
-            role: (e.target?.value || 'user') as 'user' | 'admin' | 'guide'
+            role: (e.target?.value || 'user') as 'user' | 'admin' | 'guide',
           }));
         }}
-        onStatusChange={(e: React.ChangeEvent<{ value: unknown }> | any) => {
+        onStatusChange={(e: any) => {
           setFormData((prev) => ({
             ...prev,
-            status: (e.target?.value || 'active') as 'active' | 'inactive' | 'suspended'
+            status: (e.target?.value || 'active') as 'active' | 'inactive' | 'suspended',
           }));
         }}
       />
@@ -278,10 +279,7 @@ const UsersManagement: React.FC = () => {
         autoHideDuration={6000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
           {snackbar.message}
         </Alert>
       </Snackbar>

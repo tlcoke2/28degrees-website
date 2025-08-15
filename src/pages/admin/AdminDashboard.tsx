@@ -11,8 +11,29 @@ import {
 } from '@mui/icons-material';
 import { useAdmin } from '../../contexts/AdminContext';
 import { useNavigate } from 'react-router-dom';
-import { userService, tourService, eventService, bookingService, type Booking } from '../../services/api';
+import api from '../../services/api';
 
+/* ----------------------------- Local types ----------------------------- */
+type Counts = {
+  users: number | null;
+  tours: number | null;
+  events: number | null;
+  revenueMTD: number | null; // in currency units
+};
+
+type Booking = {
+  id?: string;
+  _id?: string;
+  tourOrEvent?: { title?: string };
+  status?: string;
+  paymentStatus?: string;
+  totalAmount?: number;
+  price?: number;
+  bookingDate?: string;
+  createdAt?: string;
+};
+
+/* ----------------------------- Styled UI ------------------------------ */
 const StatCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   display: 'flex',
@@ -55,13 +76,18 @@ const StatLabel = styled(Typography)(({ theme }) => ({
   letterSpacing: '0.5px',
 }));
 
-type Counts = {
-  users: number | null;
-  tours: number | null;
-  events: number | null;
-  revenueMTD: number | null; // in default currency units
-};
+/* ----------------------------- Helpers -------------------------------- */
+function normalizeArrayResult<T = any>(body: any): T[] {
+  if (Array.isArray(body)) return body as T[];
+  if (Array.isArray(body?.data)) return body.data as T[];
+  if (Array.isArray(body?.items)) return body.items as T[];
+  return [];
+}
+function getTotalIfPresent(body: any): number | null {
+  return typeof body?.total === 'number' ? body.total : null;
+}
 
+/* ----------------------------- Component ------------------------------ */
 const AdminDashboard: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -81,97 +107,86 @@ const AdminDashboard: React.FC = () => {
   // Format helper for currency
   const formatMoney = useMemo(() => {
     try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+      return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0,
+      });
     } catch {
-      return { format: (n: number) => `$${Math.round(n).toLocaleString()}` } as Intl.NumberFormat;
+      return {
+        format: (n: number) => `$${Math.round(n).toLocaleString()}`,
+      } as unknown as Intl.NumberFormat;
     }
   }, []);
 
   useEffect(() => {
     (async () => {
-      // We’ll fetch everything in parallel and swallow individual failures
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      try {
-        const [
-          usersRes,
-          toursRes,
-          eventsRes,
-          bookingsRes,
-        ] = await Promise.allSettled([
-          // userService.getAllUsers is typed as paginated; some backends may return an array.
-          // We’ll normalize counts defensively.
-          userService.getAllUsers?.(1, 1, {}) as any,
-          tourService.getAllTours?.() as any,
-          eventService.getAllEvents?.() as any,
-          bookingService.getAllBookings?.(1, 100, { dateFrom: monthStart.toISOString() }) as any,
-        ]);
+      const [usersRes, toursRes, eventsRes, bookingsRes] = await Promise.allSettled([
+        api.get('/api/v1/admin/users'),                         // supports { total } or { data: [...] } or [...]
+        api.get('/api/v1/admin/tours'),                         // supports { data: [...] } or [...]
+        api.get('/api/v1/admin/events'),                        // supports { total } or { data: [...] } or [...]
+        api.get('/api/v1/admin/bookings', { params: { dateFrom: monthStart.toISOString() } }),
+      ]);
 
-        // Users
-        let usersCount: number | null = null;
-        if (usersRes.status === 'fulfilled') {
-          const u = usersRes.value as any;
-          usersCount = typeof u?.total === 'number' ? u.total : Array.isArray(u) ? u.length : null;
-        }
-
-        // Tours
-        let toursCount: number | null = null;
-        if (toursRes.status === 'fulfilled') {
-          const t = toursRes.value as any;
-          toursCount = Array.isArray(t) ? t.length : Array.isArray(t?.data) ? t.data.length : null;
-        }
-
-        // Events
-        let eventsCount: number | null = null;
-        if (eventsRes.status === 'fulfilled') {
-          const e = eventsRes.value as any;
-          eventsCount = typeof e?.total === 'number' ? e.total : Array.isArray(e?.data) ? e.data.length : Array.isArray(e) ? e.length : null;
-        }
-
-        // Revenue (MTD) & activities from bookings
-        let revenueMTD: number | null = null;
-        let activities: { id: string; text: string; time: string }[] = [];
-        if (bookingsRes.status === 'fulfilled') {
-          const b = bookingsRes.value as any;
-          const bookings: Booking[] =
-            Array.isArray(b?.data) ? b.data :
-            Array.isArray(b?.items) ? b.items :
-            Array.isArray(b) ? b : [];
-
-          // Sum only confirmed/paid bookings, fallback to any with totalAmount/price
-          const total = bookings.reduce((sum, bk) => {
-            const isPaid =
-              (bk as any).status === 'confirmed' ||
-              (bk as any).status === 'paid' ||
-              (bk as any).paymentStatus === 'paid';
-            if (!isPaid) return sum;
-
-            const amt = typeof (bk as any).totalAmount === 'number'
-              ? (bk as any).totalAmount
-              : typeof (bk as any).price === 'number'
-              ? (bk as any).price
-              : 0;
-            return sum + (amt || 0);
-          }, 0);
-
-          revenueMTD = total;
-
-          // Recent activity (latest 5)
-          activities = bookings.slice(0, 5).map((bk: any) => ({
-            id: bk.id || bk._id || Math.random().toString(36).slice(2),
-            text: bk?.tourOrEvent?.title
-              ? `Booking: ${bk.tourOrEvent.title} — ${bk.status || bk.paymentStatus || 'pending'}`
-              : `Booking ${bk.id || bk._id} — ${bk.status || bk.paymentStatus || 'pending'}`,
-            time: new Date(bk.bookingDate || bk.createdAt || Date.now()).toLocaleString(),
-          }));
-        }
-
-        setCounts({ users: usersCount, tours: toursCount, events: eventsCount, revenueMTD });
-        if (activities.length) setRecentActivities(activities);
-      } catch {
-        // Ignore — leave defaults/nulls; UI will still render
+      // Users count
+      let usersCount: number | null = null;
+      if (usersRes.status === 'fulfilled') {
+        const body = usersRes.value.data;
+        usersCount = getTotalIfPresent(body);
+        if (usersCount == null) usersCount = normalizeArrayResult(body).length || null;
       }
+
+      // Tours count
+      let toursCount: number | null = null;
+      if (toursRes.status === 'fulfilled') {
+        const body = toursRes.value.data;
+        toursCount = normalizeArrayResult(body).length || null;
+      }
+
+      // Events count
+      let eventsCount: number | null = null;
+      if (eventsRes.status === 'fulfilled') {
+        const body = eventsRes.value.data;
+        eventsCount = getTotalIfPresent(body);
+        if (eventsCount == null) eventsCount = normalizeArrayResult(body).length || null;
+      }
+
+      // Revenue (MTD) + recent activities
+      let revenueMTD: number | null = null;
+      let activities: { id: string; text: string; time: string }[] = [];
+      if (bookingsRes.status === 'fulfilled') {
+        const body = bookingsRes.value.data;
+        const bookings = normalizeArrayResult<Booking>(body);
+
+        const total = bookings.reduce((sum, bk) => {
+          const isPaid =
+            bk.status === 'confirmed' ||
+            bk.status === 'paid' ||
+            bk.paymentStatus === 'paid';
+          const amt =
+            typeof bk.totalAmount === 'number'
+              ? bk.totalAmount
+              : typeof bk.price === 'number'
+              ? bk.price
+              : 0;
+          return isPaid ? sum + (amt || 0) : sum;
+        }, 0);
+        revenueMTD = total;
+
+        activities = bookings.slice(0, 5).map((bk) => ({
+          id: (bk.id || bk._id || Math.random().toString(36).slice(2)) as string,
+          text: bk?.tourOrEvent?.title
+            ? `Booking: ${bk.tourOrEvent.title} — ${bk.status || bk.paymentStatus || 'pending'}`
+            : `Booking ${bk.id || bk._id} — ${bk.status || bk.paymentStatus || 'pending'}`,
+          time: new Date(bk.bookingDate || bk.createdAt || Date.now()).toLocaleString(),
+        }));
+      }
+
+      setCounts({ users: usersCount, tours: toursCount, events: eventsCount, revenueMTD });
+      if (activities.length) setRecentActivities(activities);
     })();
   }, []);
 
@@ -284,12 +299,12 @@ const AdminDashboard: React.FC = () => {
             </Box>
             <Box>
               {[
-                { label: 'Add New Tour', path: '/admin/tours' },        // open list; dialog from there
-                { label: 'Create Event', path: '/admin/events' },       // open list; dialog from there
+                { label: 'Add New Tour', path: '/admin/tours' },
+                { label: 'Create Event', path: '/admin/events' },
                 { label: 'View Bookings', path: '/admin/bookings' },
                 { label: 'Manage Users', path: '/admin/users' },
                 { label: 'Stripe Settings', path: '/admin/stripe-config' },
-                { label: 'Site Settings', path: '/admin/settings' },    // include if you added this route
+                { label: 'Site Settings', path: '/admin/settings' },
               ].map((action, index) => (
                 <Box
                   key={index}

@@ -11,6 +11,8 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // --- Models (for bootstrapping admin)
 import User from './src/models/User.model.js';
@@ -53,6 +55,12 @@ let adminSettingsRoutes, publicSettingsRoutes;
 const app = express();
 const httpServer = createServer(app);
 app.set('trust proxy', 1);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve uploaded/static files if you decide to use them
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), { maxAge: '1d', index: false }));
 
 // Security headers (allow cross-origin API usage)
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -137,6 +145,21 @@ app.use(
   (req, res, next) => (dbReady ? next() : res.status(503).json({ error: 'Database not ready' })),
   contentRouter
 );
+// --- Minimal CMS alias for /api/v1/cms/:slug (e.g., /api/v1/cms/about)
+app.get('/api/v1/cms/:slug', async (req, res) => {
+  if (!dbReady) return res.status(503).json({ error: 'Database not ready' });
+
+  try {
+    const { default: SiteContent } = await import('./src/models/SiteContent.model.js');
+    const doc = await SiteContent.findOne({ slug: req.params.slug }).lean();
+    if (!doc) return res.status(404).json({ error: 'Content not found' });
+
+    return res.status(200).json({ status: 'success', data: doc });
+  } catch (e) {
+    (logger || console).error?.('CMS lookup error:', e);
+    return res.status(500).json({ error: 'Failed to fetch content' });
+  }
+});
 
 // Bookings (gate on DB readiness)
 app.use(

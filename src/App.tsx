@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import AppLayout from './components/Layout/AppLayout';
@@ -251,3 +251,4 @@ const AppContent: React.FC = () => {
 };
 
 export default App;
+

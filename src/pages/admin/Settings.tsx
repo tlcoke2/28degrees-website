@@ -21,10 +21,10 @@ import {
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { Settings as SettingsIcon, Email, Lock, Language, Notifications, Receipt } from '@mui/icons-material';
 
-import api from '../../services/api'; // ✅ default export from services/api.ts (already configured baseURL + interceptors)
+import api from '../../services/api';
 import { SettingsFormData } from '../../types/settings';
 
-// ---------- Tab panel ----------
+/* ---------------- Tab panel ---------------- */
 interface TabPanelProps {
   children?: React.ReactNode;
   index: string;
@@ -42,10 +42,10 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
   </div>
 );
 
-// Basic email regex (kept light)
+/* ---------------- Utils ---------------- */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// ---------- Component ----------
+/* ---------------- Component ---------------- */
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('general');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -58,7 +58,7 @@ const Settings: React.FC = () => {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'success' });
 
-  // --- Initial form state (safe defaults) ---
+  // Safe defaults
   const [formData, setFormData] = useState<SettingsFormData>({
     siteTitle: '28° West',
     siteDescription: 'Adventure Tours & Travel',
@@ -94,7 +94,7 @@ const Settings: React.FC = () => {
   const showSnack = (message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'success') =>
     setSnackbar({ open: true, message, severity });
 
-  // ---------- Helpers to set nested keys ----------
+  /* -------- nested setter -------- */
   const setNestedValue = useCallback(
     <K extends keyof SettingsFormData>(parent: K, child: string, value: any) => {
       setFormData((prev) => ({
@@ -108,20 +108,20 @@ const Settings: React.FC = () => {
     []
   );
 
-  // ---------- Load settings from API ----------
+  /* -------- load settings -------- */
   const loadSettings = useCallback(async () => {
     setIsLoading(true);
     setErrorText('');
     try {
-      // Preferred admin endpoint (protected)
-      const res = await api.get<{ data: SettingsFormData } | SettingsFormData>('/admin/settings');
+      // Primary (admin) endpoint
+      const res = await api.get<{ data: SettingsFormData } | SettingsFormData>('/api/v1/admin/settings');
       const data = (res.data as any).data ?? res.data;
       setFormData((prev) => ({ ...prev, ...(data as SettingsFormData) }));
     } catch (err: any) {
-      // Fallback to public (if you expose read-only)
+      // Optional public read-only fallback
       if (err?.response?.status === 404) {
         try {
-          const pub = await api.get<{ data: Partial<SettingsFormData> } | Partial<SettingsFormData>>('/settings');
+          const pub = await api.get<{ data: Partial<SettingsFormData> } | Partial<SettingsFormData>>('/api/v1/settings');
           const data = (pub.data as any).data ?? pub.data;
           setFormData((prev) => ({ ...prev, ...(data as Partial<SettingsFormData>) }));
         } catch (e: any) {
@@ -141,7 +141,7 @@ const Settings: React.FC = () => {
     loadSettings();
   }, [loadSettings]);
 
-  // ---------- UI handlers ----------
+  /* -------- handlers -------- */
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => setActiveTab(newValue);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -186,7 +186,7 @@ const Settings: React.FC = () => {
       }
     };
 
-  // ---------- Validation ----------
+  /* -------- validate & save -------- */
   const validate = (): string | null => {
     if (!formData.siteTitle.trim()) return 'Site title is required.';
     if (!EMAIL_RE.test(formData.contactEmail)) return 'Please provide a valid contact email.';
@@ -196,14 +196,12 @@ const Settings: React.FC = () => {
     if (formData.enableEmailNotifications && !EMAIL_RE.test(formData.emailSender)) {
       return 'Please provide a valid email sender address.';
     }
-    // Basic sanity:
     if (!Number.isFinite(formData.itemsPerPage) || formData.itemsPerPage < 1) {
       return 'Items per page must be at least 1.';
     }
     return null;
   };
 
-  // ---------- Save settings to API ----------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validate();
@@ -214,12 +212,10 @@ const Settings: React.FC = () => {
 
     setIsSaving(true);
     try {
-      // Preferred admin endpoint (protected)
-      const res = await api.put('/admin/settings', formData);
+      const res = await api.put('/api/v1/admin/settings', formData);
       if (res.status >= 200 && res.status < 300) {
         showSnack('Settings saved successfully', 'success');
-        // Optionally reload to reflect any server-side normalization
-        await loadSettings();
+        await loadSettings(); // reflect any server normalization
       } else {
         showSnack('Failed to save settings', 'error');
       }
@@ -231,9 +227,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
-
-  // ---------- Render content ----------
+  /* -------- render -------- */
   const renderTabContent = () => {
     if (isLoading) {
       return (
@@ -334,12 +328,12 @@ const Settings: React.FC = () => {
                   onChange={handleSelectChange}
                   label="Currency"
                 >
-                  <MenuItem value="USD">USD ($)</MenuItem>
-                  <MenuItem value="EUR">EUR (€)</MenuItem>
-                  <MenuItem value="GBP">GBP (£)</MenuItem>
-                  <MenuItem value="CAD">CAD (C$)</MenuItem>
-                  <MenuItem value="AUD">AUD (A$)</MenuItem>
-                  <MenuItem value="JMD">JMD (J$)</MenuItem>
+                    <MenuItem value="USD">USD ($)</MenuItem>
+                    <MenuItem value="EUR">EUR (€)</MenuItem>
+                    <MenuItem value="GBP">GBP (£)</MenuItem>
+                    <MenuItem value="CAD">CAD (C$)</MenuItem>
+                    <MenuItem value="AUD">AUD (A$)</MenuItem>
+                    <MenuItem value="JMD">JMD (J$)</MenuItem>
                 </Select>
               </FormControl>
 
@@ -588,12 +582,12 @@ const Settings: React.FC = () => {
           </Grid>
         </TabPanel>
 
-        {/* NOTIFICATIONS (placeholder for future granular settings) */}
+        {/* NOTIFICATIONS */}
         <TabPanel value={activeTab} index="notifications">
           <Alert severity="info">Granular notification preferences can be managed here.</Alert>
         </TabPanel>
 
-        {/* BILLING (placeholder) */}
+        {/* BILLING */}
         <TabPanel value={activeTab} index="billing">
           <Alert severity="info">Billing & payment related settings can be managed here.</Alert>
         </TabPanel>

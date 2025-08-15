@@ -25,17 +25,17 @@ import {
   Checkbox,
   Snackbar,
   Alert,
-  TablePagination
+  TablePagination,
+  Typography
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 
-import { eventService } from '../../services/api';
+import api from '../../services/api';
 import type { Event as ApiEvent, EventCategory } from '../../types/event';
 
 // ---- Local form type (omit server-managed fields) ----
 type EventFormData = Omit<ApiEvent, 'id' | 'createdAt' | 'updatedAt'> & {
-  // Ensure optional fields are present in the form state
   id?: string; // only used when editing (not sent on create)
 };
 
@@ -55,24 +55,41 @@ const defaultEvent: EventFormData = {
   capacity: 50,
   featured: false,
   category: 'general' as EventCategory,
-  type: 'other' as any,   // keep if your schema includes a type field
+  type: 'other' as any,
   imageUrl: ''
 };
 
+// ---- Minimal API wrapper using your configured api client ----
+const eventApi = {
+  async getAll() {
+    const res = await api.get('/api/v1/admin/events');
+    // support either {data: []} or [] responses
+    return Array.isArray(res.data) ? (res.data as ApiEvent[]) : ((res.data?.data as ApiEvent[]) ?? []);
+  },
+  create(payload: Omit<EventFormData, 'id'>) {
+    return api.post('/api/v1/admin/events', payload);
+  },
+  update(id: string, payload: Omit<EventFormData, 'id'>) {
+    return api.put(`/api/v1/admin/events/${id}`, payload);
+  },
+  remove(id: string) {
+    return api.delete(`/api/v1/admin/events/${id}`);
+  }
+};
+
 const EventsManagement: React.FC = () => {
-  // Full dataset (we’ll slice it for client-side pagination)
   const [allEvents, setAllEvents] = useState<ApiEvent[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Dialog + form state
-  const [open, setOpen] = useState<boolean>(false);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<EventFormData>(defaultEvent);
 
-  // Pagination state (client-side)
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
+  // Pagination (client-side)
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState<{
@@ -85,14 +102,12 @@ const EventsManagement: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   }, []);
 
-  // ------- Fetch all events (once on mount) -------
+  // Fetch all events
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const resp = await eventService.getAllEvents(); // returns PaginatedResponse<any> in your api.ts
-      // Your current api.ts: getAllEvents -> returns { data, total, ... }
-      const data = resp?.data ?? (Array.isArray(resp) ? resp : []);
-      setAllEvents(data as ApiEvent[]);
+      const data = await eventApi.getAll();
+      setAllEvents(data);
     } catch (err: any) {
       showSnack(err?.message || 'Failed to load events', 'error');
     } finally {
@@ -104,13 +119,13 @@ const EventsManagement: React.FC = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // ------- Slice for client-side pagination -------
+  // Client-side slice
   const pagedEvents = useMemo(() => {
     const start = page * rowsPerPage;
     return allEvents.slice(start, start + rowsPerPage);
   }, [allEvents, page, rowsPerPage]);
 
-  // ------- Input handlers -------
+  // Input handlers
   const handleTextChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -130,34 +145,32 @@ const EventsManagement: React.FC = () => {
     setCurrentEvent(prev => ({ ...prev, featured: e.target.checked }));
   };
 
-  // ------- Open dialog for create -------
+  // Open dialog
   const openCreate = () => {
     setCurrentEvent(defaultEvent);
     setIsEditing(false);
     setOpen(true);
   };
 
-  // ------- Open dialog for edit -------
   const openEdit = (ev: ApiEvent) => {
-    // Map API event to form shape (strip id/createdAt/updatedAt)
     const { id, createdAt, updatedAt, ...rest } = ev as any;
     setCurrentEvent({ ...defaultEvent, ...rest, id });
     setIsEditing(true);
     setOpen(true);
   };
 
-  // ------- Submit create/update -------
+  // Create / Update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       if (isEditing && currentEvent.id) {
         const { id, ...updateData } = currentEvent;
-        await eventService.updateEvent(id, updateData as any);
+        await eventApi.update(id, updateData as Omit<EventFormData, 'id'>);
         showSnack('Event updated successfully');
       } else {
         const { id, ...createData } = currentEvent;
-        await eventService.createEvent(createData as any);
+        await eventApi.create(createData as Omit<EventFormData, 'id'>);
         showSnack('Event created successfully');
       }
       setOpen(false);
@@ -169,14 +182,14 @@ const EventsManagement: React.FC = () => {
     }
   };
 
-  // ------- Delete event -------
+  // Delete
   const handleDelete = async (id: string) => {
     const ok = window.confirm('Are you sure you want to delete this event?');
     if (!ok) return;
 
     setSaving(true);
     try {
-      await eventService.deleteEvent(id);
+      await eventApi.remove(id);
       showSnack('Event deleted successfully');
       await fetchEvents();
     } catch (err: any) {
@@ -186,7 +199,7 @@ const EventsManagement: React.FC = () => {
     }
   };
 
-  // ------- Pagination controls -------
+  // Pagination controls
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
